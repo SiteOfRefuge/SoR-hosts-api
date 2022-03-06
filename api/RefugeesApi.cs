@@ -112,104 +112,117 @@ namespace SiteOfRefuge.API
                     }
                 }
 
-                foreach(ContactMode cm in body.Contact.Methods)
+                using(SqlTransaction transaction = sql.BeginTransaction())
                 {
-                    using(SqlCommand cmd = new SqlCommand($@"insert into ContactMode(Id, Method, Value, Verified) values(
-{PARAM_CONTACTMODE_ID},
-(select top 1 Id from ContactModeMethod where value = {PARAM_CONTACTMODE_METHOD}),
-{PARAM_CONTACTMODE_VALUE},
-{PARAM_CONTACTMODE_VERIFIED});", sql))
+                    try
                     {
-                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_ID, System.Data.SqlDbType.UniqueIdentifier));
-                        cmd.Parameters[PARAM_CONTACTMODE_ID].Value = cm.Id;
-                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_METHOD, System.Data.SqlDbType.VarChar));
-                        cmd.Parameters[PARAM_CONTACTMODE_METHOD].Value = cm.Method.Value;
-                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_VALUE, System.Data.SqlDbType.NVarChar));
-                        cmd.Parameters[PARAM_CONTACTMODE_VALUE].Value = cm.Value;
-                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_VERIFIED, System.Data.SqlDbType.Bit));
-                        cmd.Parameters[PARAM_CONTACTMODE_VERIFIED].Value = (cm.Verified.HasValue && cm.Verified.Value) ? 1 : 0;
-                        cmd.ExecuteNonQuery();
+
+                        foreach(ContactMode cm in body.Contact.Methods)
+                        {
+                            using(SqlCommand cmd = new SqlCommand($@"insert into ContactMode(Id, Method, Value, Verified) values(
+                                {PARAM_CONTACTMODE_ID},
+                                (select top 1 Id from ContactModeMethod where value = {PARAM_CONTACTMODE_METHOD}),
+                                {PARAM_CONTACTMODE_VALUE},
+                                {PARAM_CONTACTMODE_VERIFIED});", sql, transaction))
+                            {
+                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                                cmd.Parameters[PARAM_CONTACTMODE_ID].Value = cm.Id;
+                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_METHOD, System.Data.SqlDbType.VarChar));
+                                cmd.Parameters[PARAM_CONTACTMODE_METHOD].Value = cm.Method.Value;
+                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_VALUE, System.Data.SqlDbType.NVarChar));
+                                cmd.Parameters[PARAM_CONTACTMODE_VALUE].Value = cm.Value;
+                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_VERIFIED, System.Data.SqlDbType.Bit));
+                                cmd.Parameters[PARAM_CONTACTMODE_VERIFIED].Value = (cm.Verified.HasValue && cm.Verified.Value) ? 1 : 0;
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        using(SqlCommand cmd = new SqlCommand($"insert into Contact(Id, Name) values({PARAM_CONTACT_ID}, {PARAM_CONTACT_NAME});", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_CONTACT_ID].Value = body.Contact.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_NAME, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_CONTACT_NAME].Value = body.Contact.Name;
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        //now that Contact and ContactMode(s) are inserted, can insert ContactToMethod links
+                        foreach(ContactMode cm in body.Contact.Methods)
+                        {
+                            using(SqlCommand cmd = new SqlCommand($@"insert into ContactToMethods(ContactId, ContactModeId)
+                                values({PARAM_CONTACTTOMETHODS_CONTACTID},  {PARAM_CONTACTTOMETHODS_CONTACTMODEID});", sql, transaction))
+                            {
+                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
+                                cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = body.Contact.Id;
+                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTMODEID, System.Data.SqlDbType.UniqueIdentifier));
+                                cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTMODEID].Value = cm.Id;
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummary(Id, Region, People, Message, PossessionDate) values(
+                            {PARAM_REFUGEESUMMARY_ID}, {PARAM_REFUGEESUMMARY_REGION}, {PARAM_REFUGEESUMMARY_PEOPLE}, {PARAM_REFUGEESUMMARY_MESSAGE}, {PARAM_REFUGEESUMMARY_POSSESSIONDATE});", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_ID].Value = body.Summary.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_REGION, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_REGION].Value = body.Summary.Region;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_PEOPLE, System.Data.SqlDbType.Int));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_PEOPLE].Value = body.Summary.People;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_MESSAGE].Value = body.Summary.Message;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_POSSESSIONDATE, System.Data.SqlDbType.DateTimeOffset));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_POSSESSIONDATE].Value = body.Summary.PossessionDate;
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        using(SqlCommand cmd = new SqlCommand($"insert into Refugee(Id, Summary, Contact) values({PARAM_REFUGEE_ID}, {PARAM_REFUGEE_SUMMARY}, {PARAM_REFUGEE_CONTACT});", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_REFUGEE_ID].Value = body.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_SUMMARY, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_REFUGEE_SUMMARY].Value = body.Summary.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_CONTACT, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_REFUGEE_CONTACT].Value = body.Contact.Id;
+                            cmd.ExecuteNonQuery();
+                        }   
+
+                        foreach(Restrictions r in body.Summary.Restrictions)
+                        {
+                            using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToRestrictions(RefugeeSummaryId, RestrictionsId) values(
+                                {PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID},
+                                (select top 1 id from restrictions where value = {PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE}));", sql, transaction))
+                            {
+                                cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                                cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID].Value = body.Summary.Id;
+                                cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE, System.Data.SqlDbType.NVarChar));
+                                cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE].Value = r.Value;
+                                cmd.ExecuteNonQuery();
+                            }      
+                        }
+
+                        foreach(SpokenLanguages l in body.Summary.Languages)
+                        {
+                            using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToLanguages(RefugeeSummaryId, SpokenLanguagesId) values(
+                                {PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID},
+                                (select top 1 id from spokenlanguages where value = {PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE}));", sql, transaction))
+                            {
+                                cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                                cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID].Value = body.Summary.Id;
+                                cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE, System.Data.SqlDbType.NVarChar));
+                                cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE].Value = l.Value;
+                                cmd.ExecuteNonQuery();
+                            }      
+                        }
                     }
-                }
-
-                using(SqlCommand cmd = new SqlCommand($"insert into Contact(Id, Name) values({PARAM_CONTACT_ID}, {PARAM_CONTACT_NAME});", sql))
-                {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_ID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_CONTACT_ID].Value = body.Contact.Id;
-                    cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_NAME, System.Data.SqlDbType.NVarChar));
-                    cmd.Parameters[PARAM_CONTACT_NAME].Value = body.Contact.Name;
-                    cmd.ExecuteNonQuery();
-                }
-
-                //now that Contact and ContactMode(s) are inserted, can insert ContactToMethod links
-                foreach(ContactMode cm in body.Contact.Methods)
-                {
-                    using(SqlCommand cmd = new SqlCommand($@"insert into ContactToMethods(ContactId, ContactModeId)
-values({PARAM_CONTACTTOMETHODS_CONTACTID},  {PARAM_CONTACTTOMETHODS_CONTACTMODEID});", sql))
+                    catch (Exception exc)
                     {
-                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
-                        cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = body.Contact.Id;
-                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTMODEID, System.Data.SqlDbType.UniqueIdentifier));
-                        cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTMODEID].Value = cm.Id;
-                        cmd.ExecuteNonQuery();
+                        transaction.Rollback();
+                        return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
                     }
+                    transaction.Commit();
                 }
-
-                using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummary(Id, Region, People, Message, PossessionDate) values(
-{PARAM_REFUGEESUMMARY_ID}, {PARAM_REFUGEESUMMARY_REGION}, {PARAM_REFUGEESUMMARY_PEOPLE}, {PARAM_REFUGEESUMMARY_MESSAGE}, {PARAM_REFUGEESUMMARY_POSSESSIONDATE});", sql))
-                {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_ID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEESUMMARY_ID].Value = body.Summary.Id;
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_REGION, System.Data.SqlDbType.NVarChar));
-                    cmd.Parameters[PARAM_REFUGEESUMMARY_REGION].Value = body.Summary.Region;
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_PEOPLE, System.Data.SqlDbType.Int));
-                    cmd.Parameters[PARAM_REFUGEESUMMARY_PEOPLE].Value = body.Summary.People;
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
-                    cmd.Parameters[PARAM_REFUGEESUMMARY_MESSAGE].Value = body.Summary.Message;
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_POSSESSIONDATE, System.Data.SqlDbType.DateTimeOffset));
-                    cmd.Parameters[PARAM_REFUGEESUMMARY_POSSESSIONDATE].Value = body.Summary.PossessionDate;
-                    cmd.ExecuteNonQuery();
-                }
-
-                using(SqlCommand cmd = new SqlCommand($"insert into Refugee(Id, Summary, Contact) values({PARAM_REFUGEE_ID}, {PARAM_REFUGEE_SUMMARY}, {PARAM_REFUGEE_CONTACT});", sql))
-                {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEE_ID].Value = body.Id;
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_SUMMARY, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEE_SUMMARY].Value = body.Summary.Id;
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_CONTACT, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEE_CONTACT].Value = body.Contact.Id;
-                    cmd.ExecuteNonQuery();
-                }   
-
-                foreach(Restrictions r in body.Summary.Restrictions)
-                {
-                    using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToRestrictions(RefugeeSummaryId, RestrictionsId) values(
-{PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID},
-(select top 1 id from restrictions where value = {PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE}));", sql))
-                    {
-                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
-                        cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID].Value = body.Summary.Id;
-                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE, System.Data.SqlDbType.NVarChar));
-                        cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE].Value = r.Value;
-                        cmd.ExecuteNonQuery();
-                    }      
-                }
-
-                foreach(SpokenLanguages l in body.Summary.Languages)
-                {
-                    using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToLanguages(RefugeeSummaryId, SpokenLanguagesId) values(
-{PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID},
-(select top 1 id from spokenlanguages where value = {PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE}));", sql))
-                    {
-                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
-                        cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID].Value = body.Summary.Id;
-                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE, System.Data.SqlDbType.NVarChar));
-                        cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE].Value = l.Value;
-                        cmd.ExecuteNonQuery();
-                    }      
-                }
-
+                
                 sql.Close();
             }
             // TODO: Handle Documented Responses.
@@ -231,21 +244,23 @@ values({PARAM_CONTACTTOMETHODS_CONTACTID},  {PARAM_CONTACTTOMETHODS_CONTACTMODEI
             using(SqlConnection sql = new SqlConnection(SQL_CONNECTION_STRING))
             {
                 sql.Open();
+
                 JObject json = new JObject();
                 Guid? contactId = null;
                 Guid? summaryId = null;
+
                 using(SqlCommand cmd = new SqlCommand($@"select r.id as Id,
-rs.id as RefugeeSummaryId,
-rs.Region as RefugeeSummaryRegion,
-rs.People as RefugeeSummaryPeople,
-rs.Message as RefugeeSummaryMessage,
-rs.PossessionDate as RefugeePossessionDate,
-c.Id as RefugeeContactId,
-c.Name as RefugeeContactName
-from refugee r
-join refugeesummary rs on r.summary = rs.id
-join contact c on r.contact = c.id
-where r.Id = {PARAM_REFUGEE_ID}", sql))
+                    rs.id as RefugeeSummaryId,
+                    rs.Region as RefugeeSummaryRegion,
+                    rs.People as RefugeeSummaryPeople,
+                    rs.Message as RefugeeSummaryMessage,
+                    rs.PossessionDate as RefugeePossessionDate,
+                    c.Id as RefugeeContactId,
+                    c.Name as RefugeeContactName
+                    from refugee r
+                    join refugeesummary rs on r.summary = rs.id
+                    join contact c on r.contact = c.id
+                    where r.Id = {PARAM_REFUGEE_ID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEE_ID].Value = id;
@@ -278,13 +293,13 @@ where r.Id = {PARAM_REFUGEE_ID}", sql))
                 }
 
                 using(SqlCommand cmd = new SqlCommand($@"select cm.Id,
-cmm.description,
-cm.Value,
-cm.verified
-from contacttomethods ctm
-join contactmode cm on ctm.contactmodeid = cm.id
-join contactmodemethod cmm on cm.method = cmm.id
-where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
+                    cmm.description,
+                    cm.Value,
+                    cm.verified
+                    from contacttomethods ctm
+                    join contactmode cm on ctm.contactmodeid = cm.id
+                    join contactmodemethod cmm on cm.method = cmm.id
+                    where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = contactId;
@@ -305,9 +320,9 @@ where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
                 }
 
                 using(SqlCommand cmd = new SqlCommand($@"select sl.description
-from refugeesummarytolanguages rstl
-join spokenlanguages sl on rstl.spokenlanguagesid = sl.id
-where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql))
+                    from refugeesummarytolanguages rstl
+                    join spokenlanguages sl on rstl.spokenlanguagesid = sl.id
+                    where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID].Value = summaryId;
@@ -328,9 +343,9 @@ where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql)
                 }
 
                 using(SqlCommand cmd = new SqlCommand($@"select r.description
-from refugeesummarytorestrictions rstr
-join Restrictions r on rstr.restrictionsid = r.id
-where rstr.refugeesummaryid = {PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID}", sql))
+                    from refugeesummarytorestrictions rstr
+                    join Restrictions r on rstr.restrictionsid = r.id
+                    where rstr.refugeesummaryid = {PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID].Value = summaryId;
