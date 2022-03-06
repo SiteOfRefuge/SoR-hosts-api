@@ -101,7 +101,7 @@ namespace SiteOfRefuge.API
             using(SqlConnection sql = new SqlConnection(SQL_CONNECTION_STRING))
             {
                 sql.Open();
-                using(SqlCommand cmd = new SqlCommand("select top 1 * from Refugee where Id = " + PARAM_REFUGEE_ID, sql))
+                using(SqlCommand cmd = new SqlCommand($"select top 1 * from Refugee where Id = {PARAM_REFUGEE_ID}" , sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEE_ID].Value = body.Id;
@@ -114,7 +114,11 @@ namespace SiteOfRefuge.API
 
                 foreach(ContactMode cm in body.Contact.Methods)
                 {
-                    using(SqlCommand cmd = new SqlCommand("insert into ContactMode(Id, Method, Value, Verified) values(" + PARAM_CONTACTMODE_ID + ", (select top 1 Id from ContactModeMethod where value = " + PARAM_CONTACTMODE_METHOD + "), " + PARAM_CONTACTMODE_VALUE + ", " + PARAM_CONTACTMODE_VERIFIED + ");", sql))
+                    using(SqlCommand cmd = new SqlCommand($@"insert into ContactMode(Id, Method, Value, Verified) values(
+{PARAM_CONTACTMODE_ID},
+(select top 1 Id from ContactModeMethod where value = {PARAM_CONTACTMODE_METHOD}),
+{PARAM_CONTACTMODE_VALUE},
+{PARAM_CONTACTMODE_VERIFIED});", sql))
                     {
                         cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_ID, System.Data.SqlDbType.UniqueIdentifier));
                         cmd.Parameters[PARAM_CONTACTMODE_ID].Value = cm.Id;
@@ -128,7 +132,7 @@ namespace SiteOfRefuge.API
                     }
                 }
 
-                using(SqlCommand cmd = new SqlCommand("insert into Contact(Id, Name) values(" + PARAM_CONTACT_ID + ",  " + PARAM_CONTACT_NAME + ");", sql))
+                using(SqlCommand cmd = new SqlCommand($"insert into Contact(Id, Name) values({PARAM_CONTACT_ID}, {PARAM_CONTACT_NAME});", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_ID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_CONTACT_ID].Value = body.Contact.Id;
@@ -140,7 +144,8 @@ namespace SiteOfRefuge.API
                 //now that Contact and ContactMode(s) are inserted, can insert ContactToMethod links
                 foreach(ContactMode cm in body.Contact.Methods)
                 {
-                    using(SqlCommand cmd = new SqlCommand("insert into ContactToMethods(ContactId, ContactModeId) values(" + PARAM_CONTACTTOMETHODS_CONTACTID + ",  " + PARAM_CONTACTTOMETHODS_CONTACTMODEID + ");", sql))
+                    using(SqlCommand cmd = new SqlCommand($@"insert into ContactToMethods(ContactId, ContactModeId)
+values({PARAM_CONTACTTOMETHODS_CONTACTID},  {PARAM_CONTACTTOMETHODS_CONTACTMODEID});", sql))
                     {
                         cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
                         cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = body.Contact.Id;
@@ -150,7 +155,8 @@ namespace SiteOfRefuge.API
                     }
                 }
 
-                using(SqlCommand cmd = new SqlCommand("insert into RefugeeSummary(Id, Region, People, Message, PossessionDate) values(" + PARAM_REFUGEESUMMARY_ID + ", " + PARAM_REFUGEESUMMARY_REGION + ", " + PARAM_REFUGEESUMMARY_PEOPLE + ", " + PARAM_REFUGEESUMMARY_MESSAGE + ", " + PARAM_REFUGEESUMMARY_POSSESSIONDATE + ");", sql))
+                using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummary(Id, Region, People, Message, PossessionDate) values(
+{PARAM_REFUGEESUMMARY_ID}, {PARAM_REFUGEESUMMARY_REGION}, {PARAM_REFUGEESUMMARY_PEOPLE}, {PARAM_REFUGEESUMMARY_MESSAGE}, {PARAM_REFUGEESUMMARY_POSSESSIONDATE});", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_ID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEESUMMARY_ID].Value = body.Summary.Id;
@@ -165,7 +171,7 @@ namespace SiteOfRefuge.API
                     cmd.ExecuteNonQuery();
                 }
 
-                using(SqlCommand cmd = new SqlCommand("insert into Refugee(Id, Summary, Contact) values(" + PARAM_REFUGEE_ID + ", " + PARAM_REFUGEE_SUMMARY + ", " + PARAM_REFUGEE_CONTACT + ");", sql))
+                using(SqlCommand cmd = new SqlCommand($"insert into Refugee(Id, Summary, Contact) values({PARAM_REFUGEE_ID}, {PARAM_REFUGEE_SUMMARY}, {PARAM_REFUGEE_CONTACT});", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEE_ID].Value = body.Id;
@@ -178,7 +184,9 @@ namespace SiteOfRefuge.API
 
                 foreach(Restrictions r in body.Summary.Restrictions)
                 {
-                    using(SqlCommand cmd = new SqlCommand("insert into RefugeeSummaryToRestrictions(RefugeeSummaryId, RestrictionsId) values(" + PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID + ", (select top 1 id from restrictions where value = " + PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE + "));", sql))
+                    using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToRestrictions(RefugeeSummaryId, RestrictionsId) values(
+{PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID},
+(select top 1 id from restrictions where value = {PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE}));", sql))
                     {
                         cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
                         cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID].Value = body.Summary.Id;
@@ -190,7 +198,9 @@ namespace SiteOfRefuge.API
 
                 foreach(SpokenLanguages l in body.Summary.Languages)
                 {
-                    using(SqlCommand cmd = new SqlCommand("insert into RefugeeSummaryToLanguages(RefugeeSummaryId, SpokenLanguagesId) values(" + PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID + ", (select top 1 id from spokenlanguages where value = " + PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE + "));", sql))
+                    using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToLanguages(RefugeeSummaryId, SpokenLanguagesId) values(
+{PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID},
+(select top 1 id from spokenlanguages where value = {PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE}));", sql))
                     {
                         cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
                         cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID].Value = body.Summary.Id;
@@ -224,7 +234,18 @@ namespace SiteOfRefuge.API
                 JObject json = new JObject();
                 Guid? contactId = null;
                 Guid? summaryId = null;
-                using(SqlCommand cmd = new SqlCommand("select r.id as Id, rs.id as RefugeeSummaryId, rs.Region as RefugeeSummaryRegion, rs.People as RefugeeSummaryPeople, rs.Message as RefugeeSummaryMessage, rs.PossessionDate as RefugeePossessionDate, c.Id as RefugeeContactId, c.Name as RefugeeContactName from refugee r join refugeesummary rs on r.summary = rs.id join contact c on r.contact = c.id where r.Id = " + PARAM_REFUGEE_ID, sql))
+                using(SqlCommand cmd = new SqlCommand($@"select r.id as Id,
+rs.id as RefugeeSummaryId,
+rs.Region as RefugeeSummaryRegion,
+rs.People as RefugeeSummaryPeople,
+rs.Message as RefugeeSummaryMessage,
+rs.PossessionDate as RefugeePossessionDate,
+c.Id as RefugeeContactId,
+c.Name as RefugeeContactName
+from refugee r
+join refugeesummary rs on r.summary = rs.id
+join contact c on r.contact = c.id
+where r.Id = {PARAM_REFUGEE_ID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEE_ID].Value = id;
@@ -256,7 +277,14 @@ namespace SiteOfRefuge.API
                     }
                 }
 
-                using(SqlCommand cmd = new SqlCommand("select cm.Id, cmm.description, cm.Value, cm.verified from contacttomethods ctm join contactmode cm on ctm.contactmodeid = cm.id join contactmodemethod cmm on cm.method = cmm.id where ctm.contactid = " + PARAM_CONTACTTOMETHODS_CONTACTID, sql))
+                using(SqlCommand cmd = new SqlCommand($@"select cm.Id,
+cmm.description,
+cm.Value,
+cm.verified
+from contacttomethods ctm
+join contactmode cm on ctm.contactmodeid = cm.id
+join contactmodemethod cmm on cm.method = cmm.id
+where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = contactId;
@@ -276,7 +304,10 @@ namespace SiteOfRefuge.API
                     json["contact"]["methods"] = JToken.FromObject(contactMethods);
                 }
 
-                using(SqlCommand cmd = new SqlCommand("select sl.description from refugeesummarytolanguages rstl join spokenlanguages sl on rstl.spokenlanguagesid = sl.id where rstl.refugeesummaryid = " + PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID, sql))
+                using(SqlCommand cmd = new SqlCommand($@"select sl.description
+from refugeesummarytolanguages rstl
+join spokenlanguages sl on rstl.spokenlanguagesid = sl.id
+where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID].Value = summaryId;
@@ -296,7 +327,10 @@ namespace SiteOfRefuge.API
                     json["summary"]["languages"] = JToken.FromObject(languages);
                 }
 
-                using(SqlCommand cmd = new SqlCommand("select r.description from refugeesummarytorestrictions rstr join Restrictions r on rstr.restrictionsid = r.id where rstr.refugeesummaryid = " + PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID, sql))
+                using(SqlCommand cmd = new SqlCommand($@"select r.description
+from refugeesummarytorestrictions rstr
+join Restrictions r on rstr.restrictionsid = r.id
+where rstr.refugeesummaryid = {PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID}", sql))
                 {
                     cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
                     cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID].Value = summaryId;
