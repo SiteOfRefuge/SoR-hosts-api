@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using SiteOfRefuge.API.Middleware;
 
 namespace SiteOfRefuge.API
 {
@@ -22,6 +23,7 @@ namespace SiteOfRefuge.API
         /// <summary> Attempt to find hosts that match the needs of a refugee. This id has to match with the id in the access token. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Refugee id in UUID/GUID format. </param>
+        [FunctionAuthorize("subject")]
         [Function(nameof(FindMatch))]
         public HttpResponseData FindMatch([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "search/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {

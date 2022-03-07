@@ -6,8 +6,6 @@
 #nullable disable
 
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -90,7 +88,6 @@ namespace SiteOfRefuge.API
         /// <summary> Withdraw invitation request. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Invite id in UUID/GUID format. </param>
-        /// <param name="cancellationToken"> The cancellation token provided on Function shutdown. </param>
         [Function(nameof(DeleteInvite))]
         public HttpResponseData DeleteInvite([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "invite/{id}")] HttpRequestData req, string id, FunctionContext context)
         {

@@ -11,6 +11,7 @@ using System.Net;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using SiteOfRefuge.API.Middleware;
 using SiteOfRefuge.API.Models;
 
 namespace SiteOfRefuge.API
@@ -22,6 +23,7 @@ namespace SiteOfRefuge.API
 
         /// <summary> Get a summary list of refugees registered in the system. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
+        [FunctionAuthorize("admin")]
         [Function(nameof(GetRefugees))]
         public HttpResponseData GetRefugees([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "refugees")] HttpRequestData req, FunctionContext context)
         {
@@ -59,6 +61,7 @@ namespace SiteOfRefuge.API
         /// <summary> Get information about a specific refugee. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Refugee id in UUID/GUID format. </param>
+        [FunctionAuthorize("subject")]
         [Function(nameof(GetRefugee))]
         public HttpResponseData GetRefugee([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "refugees/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {
@@ -77,6 +80,7 @@ namespace SiteOfRefuge.API
         /// <param name="body"> The Refugee to use. </param>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="body"/> is null. </exception>
+        [FunctionAuthorize("subject")]
         [Function(nameof(UpdateRefugee))]
         public HttpResponseData UpdateRefugee(Guid id, [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "refugees/{id}")] Refugee body, HttpRequestData req, FunctionContext context)
         {
@@ -93,6 +97,7 @@ namespace SiteOfRefuge.API
         /// <summary> Schedules a refugee to be deleted from the system (after 7 days archival). </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Refugee id in UUID/GUID format. </param>
+        [FunctionAuthorize("subject")]
         [Function(nameof(DeleteRefugee))]
         public HttpResponseData DeleteRefugee([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "refugees/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {

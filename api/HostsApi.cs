@@ -6,10 +6,10 @@
 #nullable disable
 
 using System;
-using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using SiteOfRefuge.API.Middleware;
 using SiteOfRefuge.API.Models;
 
 namespace SiteOfRefuge.API
@@ -22,6 +22,7 @@ namespace SiteOfRefuge.API
 
         /// <summary> Get a summary list of hosts registered in the system. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
+        [FunctionAuthorize("admin")]
         [Function(nameof(GetHosts))]
         public HttpResponseData GetHosts([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "hosts")] HttpRequestData req, FunctionContext context)
         {
@@ -53,6 +54,7 @@ namespace SiteOfRefuge.API
         /// <summary> Get information about a specific host. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Host id in UUID/GUID format. </param>
+        [FunctionAuthorize("subject")]
         [Function(nameof(GetHost))]
         public HttpResponseData GetHost([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "hosts/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {
@@ -71,6 +73,7 @@ namespace SiteOfRefuge.API
         /// <param name="body"> The Host to use. </param>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="body"/> is null. </exception>
+        [FunctionAuthorize("subject")]
         [Function(nameof(UpdateHost))]
         public HttpResponseData UpdateHost(Guid id, [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "hosts/{id}")] Host body, HttpRequestData req, FunctionContext context)
         {
@@ -87,6 +90,7 @@ namespace SiteOfRefuge.API
         /// <summary> Schedules a host to be deleted from the system (after 7 days archival). </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Host id in UUID/GUID format. </param>
+        [FunctionAuthorize("subject")]
         [Function(nameof(DeleteHost))]
         public HttpResponseData DeleteHost([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "hosts/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {

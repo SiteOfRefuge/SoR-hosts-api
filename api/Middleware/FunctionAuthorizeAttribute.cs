@@ -1,23 +1,20 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SiteOfRefuge.API.Middleware
 {
     /// <summary>
     /// This attribute is used to decorate Function with authorize attribute.
-    /// It contains one or more roles.
+    /// If set, the authorization middleware will validate if this request can be authorized. 
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class FunctionAuthorizeAttribute : Attribute
     {
-        public FunctionAuthorizeAttribute(params string[] roles)
+        public FunctionAuthorizeAttribute(string flag)
         {
-            Roles = roles;
+            Flag = flag;
         }
 
-        public IEnumerable<string> Roles { get; }
+        public string Flag { get; }
     }
 }
