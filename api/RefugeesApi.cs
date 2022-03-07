@@ -24,7 +24,6 @@ namespace SiteOfRefuge.API
     public class RefugeesApi
     {
         private ILogger<RefugeesApi> _logger;
-        private const string SQL_CONNECTION_STRING = "Server=localhost;Database=SiteOfRefugeAPI;Trusted_Connection=True;";
 
         /// <summary> Initializes a new instance of RefugeesApi. </summary>
         /// <param name="logger"> Class logger. </param>
@@ -58,17 +57,7 @@ namespace SiteOfRefuge.API
             return new OkObjectResult(refugeeList);
         }
 
-
-        //have to repeat the parameters 3 times (query, create param, set param value), so helps avoid typos and increases maintainability
-        const string PARAM_REFUGEE_ID = "@ID";
-        const string PARAM_CONTACTMODE_ID = "@ID";
-        const string PARAM_CONTACTMODE_METHOD = "@Method";
-        const string PARAM_CONTACTMODE_VALUE = "@Value";
-        const string PARAM_CONTACTMODE_VERIFIED = "@Verified";
-        const string PARAM_CONTACTTOMETHODS_CONTACTID = "@ContactId";
-        const string PARAM_CONTACTTOMETHODS_CONTACTMODEID = "@ContactModeId";
-        const string PARAM_CONTACT_ID = "@Id";
-        const string PARAM_CONTACT_NAME = "@Name";
+        const string PARAM_REFUGEE_ID = "@Id";
         const string PARAM_REFUGEESUMMARY_ID = "@Id";
         const string PARAM_REFUGEESUMMARY_REGION = "@Region";
         const string PARAM_REFUGEESUMMARY_PEOPLE = "@People";
@@ -81,9 +70,7 @@ namespace SiteOfRefuge.API
         const string PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID = "@RefugeeSummaryId";
         const string PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE = "@LanguageValue";
         const string PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID = "@SummaryId";
-        const string PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID = "@SummaryId";
-
-        /// <summary> Registers a new refugee in the system. </summary>
+        const string PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID = "@SummaryId";        /// <summary> Registers a new refugee in the system. </summary>
         /// <param name="body"> The Refugee to use. </param>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="cancellationToken"> The cancellation token provided on Function shutdown. </param>
@@ -97,8 +84,7 @@ namespace SiteOfRefuge.API
                 throw new ArgumentNullException();
             
             //WARNING: trusting Id in body.Id (is this passed in from the request?) -- if we need to use an auth thing will need some code to update this
-
-            using(SqlConnection sql = new SqlConnection(SQL_CONNECTION_STRING))
+            using(SqlConnection sql = SqlShared.GetSqlConnection())
             {
                 sql.Open();
                 using(SqlCommand cmd = new SqlCommand($"select top 1 * from Refugee where Id = {PARAM_REFUGEE_ID}" , sql))
@@ -116,49 +102,9 @@ namespace SiteOfRefuge.API
                 {
                     try
                     {
-
-                        foreach(ContactMode cm in body.Contact.Methods)
-                        {
-                            using(SqlCommand cmd = new SqlCommand($@"insert into ContactMode(Id, Method, Value, Verified) values(
-                                {PARAM_CONTACTMODE_ID},
-                                (select top 1 Id from ContactModeMethod where value = {PARAM_CONTACTMODE_METHOD}),
-                                {PARAM_CONTACTMODE_VALUE},
-                                {PARAM_CONTACTMODE_VERIFIED});", sql, transaction))
-                            {
-                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_ID, System.Data.SqlDbType.UniqueIdentifier));
-                                cmd.Parameters[PARAM_CONTACTMODE_ID].Value = cm.Id;
-                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_METHOD, System.Data.SqlDbType.VarChar));
-                                cmd.Parameters[PARAM_CONTACTMODE_METHOD].Value = cm.Method.Value;
-                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_VALUE, System.Data.SqlDbType.NVarChar));
-                                cmd.Parameters[PARAM_CONTACTMODE_VALUE].Value = cm.Value;
-                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTMODE_VERIFIED, System.Data.SqlDbType.Bit));
-                                cmd.Parameters[PARAM_CONTACTMODE_VERIFIED].Value = (cm.Verified.HasValue && cm.Verified.Value) ? 1 : 0;
-                                cmd.ExecuteNonQuery();
-                            }
-                        }
-
-                        using(SqlCommand cmd = new SqlCommand($"insert into Contact(Id, Name) values({PARAM_CONTACT_ID}, {PARAM_CONTACT_NAME});", sql, transaction))
-                        {
-                            cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_ID, System.Data.SqlDbType.UniqueIdentifier));
-                            cmd.Parameters[PARAM_CONTACT_ID].Value = body.Contact.Id;
-                            cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_NAME, System.Data.SqlDbType.NVarChar));
-                            cmd.Parameters[PARAM_CONTACT_NAME].Value = body.Contact.Name;
-                            cmd.ExecuteNonQuery();
-                        }
-
-                        //now that Contact and ContactMode(s) are inserted, can insert ContactToMethod links
-                        foreach(ContactMode cm in body.Contact.Methods)
-                        {
-                            using(SqlCommand cmd = new SqlCommand($@"insert into ContactToMethods(ContactId, ContactModeId)
-                                values({PARAM_CONTACTTOMETHODS_CONTACTID},  {PARAM_CONTACTTOMETHODS_CONTACTMODEID});", sql, transaction))
-                            {
-                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
-                                cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = body.Contact.Id;
-                                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTMODEID, System.Data.SqlDbType.UniqueIdentifier));
-                                cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTMODEID].Value = cm.Id;
-                                cmd.ExecuteNonQuery();
-                            }
-                        }
+                        SqlShared.InsertContactModes(sql, transaction, body.Contact.Methods);
+                        SqlShared.InsertContact(sql, transaction, body.Contact);
+                        SqlShared.InsertContactToMethods(sql, transaction, body.Contact.Methods, body.Contact.Id);
 
                         using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummary(Id, Region, People, Message, PossessionDate) values(
                             {PARAM_REFUGEESUMMARY_ID}, {PARAM_REFUGEESUMMARY_REGION}, {PARAM_REFUGEESUMMARY_PEOPLE}, {PARAM_REFUGEESUMMARY_MESSAGE}, {PARAM_REFUGEESUMMARY_POSSESSIONDATE});", sql, transaction))
@@ -176,17 +122,13 @@ namespace SiteOfRefuge.API
                             cmd.ExecuteNonQuery();
                         }
 
-                        using(SqlCommand cmd = new SqlCommand($"insert into Refugee(Id, Summary, Contact) values({PARAM_REFUGEE_ID}, {PARAM_REFUGEE_SUMMARY}, {PARAM_REFUGEE_CONTACT});", sql, transaction))
-                        {
-                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
-                            cmd.Parameters[PARAM_REFUGEE_ID].Value = body.Id;
-                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_SUMMARY, System.Data.SqlDbType.UniqueIdentifier));
-                            cmd.Parameters[PARAM_REFUGEE_SUMMARY].Value = body.Summary.Id;
-                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_CONTACT, System.Data.SqlDbType.UniqueIdentifier));
-                            cmd.Parameters[PARAM_REFUGEE_CONTACT].Value = body.Contact.Id;
-                            cmd.ExecuteNonQuery();
-                        }   
+                        const string TABLE_NAME = "Refugee";
+                        SqlShared.InsertCustomer(sql, transaction, body.Id, body.Summary.Id, body.Contact.Id, TABLE_NAME);
 
+                        const string RESTRICTIONS_TABLE_NAME = "RefugeeSummaryToRestrictions";
+                        const string RESTRICTIONS_ID_COLUMN_NAME = "RefugeeSummaryId";
+                        SqlShared.InsertRestrictionsList(sql, transaction, body.Summary.Restrictions, RESTRICTIONS_TABLE_NAME, RESTRICTIONS_ID_COLUMN_NAME, body.Summary.Id);
+                        /*
                         foreach(Restrictions r in body.Summary.Restrictions)
                         {
                             using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToRestrictions(RefugeeSummaryId, RestrictionsId) values(
@@ -200,7 +142,12 @@ namespace SiteOfRefuge.API
                                 cmd.ExecuteNonQuery();
                             }      
                         }
+                        */
 
+                        const string LANGUAGES_TABLE_NAME = "RefugeeSummaryToLanguages";
+                        const string LANGUAGES_ID_COLUMN_NAME = "RefugeeSummaryId";
+                        SqlShared.InsertLanguageList(sql, transaction, body.Summary.Languages, LANGUAGES_TABLE_NAME, LANGUAGES_ID_COLUMN_NAME, body.Summary.Id);
+                        /*
                         foreach(SpokenLanguages l in body.Summary.Languages)
                         {
                             using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummaryToLanguages(RefugeeSummaryId, SpokenLanguagesId) values(
@@ -214,11 +161,13 @@ namespace SiteOfRefuge.API
                                 cmd.ExecuteNonQuery();
                             }      
                         }
+                        */
                     }
                     catch (Exception exc)
                     {
                         transaction.Rollback();
                         return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                        //return new BadRequestResult();
                     }
                     transaction.Commit();
                 }
@@ -240,142 +189,144 @@ namespace SiteOfRefuge.API
             //WARNING: incomplete and UNTESTED (route issue / likely user error)
             _logger.LogInformation("HTTP trigger function processed a request.");
 
-
-            using(SqlConnection sql = new SqlConnection(SQL_CONNECTION_STRING))
+            try
             {
-                sql.Open();
 
-                JObject json = new JObject();
-                Guid? contactId = null;
-                Guid? summaryId = null;
-
-                using(SqlCommand cmd = new SqlCommand($@"select r.id as Id,
-                    rs.id as RefugeeSummaryId,
-                    rs.Region as RefugeeSummaryRegion,
-                    rs.People as RefugeeSummaryPeople,
-                    rs.Message as RefugeeSummaryMessage,
-                    rs.PossessionDate as RefugeePossessionDate,
-                    c.Id as RefugeeContactId,
-                    c.Name as RefugeeContactName
-                    from refugee r
-                    join refugeesummary rs on r.summary = rs.id
-                    join contact c on r.contact = c.id
-                    where r.Id = {PARAM_REFUGEE_ID}", sql))
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
                 {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEE_ID].Value = id;
-                    using(SqlDataReader sdr = cmd.ExecuteReader())
+                    sql.Open();
+
+                    JObject json = new JObject();
+                    Guid? contactId = null;
+                    Guid? summaryId = null;
+
+                    using(SqlCommand cmd = new SqlCommand($@"select r.id as Id,
+                        rs.id as RefugeeSummaryId,
+                        rs.Region as RefugeeSummaryRegion,
+                        rs.People as RefugeeSummaryPeople,
+                        rs.Message as RefugeeSummaryMessage,
+                        rs.PossessionDate as RefugeePossessionDate,
+                        c.Id as RefugeeContactId,
+                        c.Name as RefugeeContactName
+                        from refugee r
+                        join refugeesummary rs on r.summary = rs.id
+                        join contact c on r.contact = c.id
+                        where r.Id = {PARAM_REFUGEE_ID}", sql))
                     {
-                        if(!sdr.Read())
-                            return new BadRequestObjectResult("Error: no refugee with ID '" + id.ToString() + "'");
-                        json["id"] = sdr.GetGuid(0).ToString();
-
-                        //summary portion
-                        JObject summary = new JObject();
-                        summaryId = sdr.GetGuid(1);
-                        summary["id"] = summaryId.ToString();
-                        summary["region"] = sdr.GetString(2);
-                        summary["people"] = sdr.GetInt32(3);
-                        summary["message"] = sdr.GetString(4);
-                        //restrictions
-                        //languages
-                        summary["possession_date"] = sdr.GetDateTimeOffset(5);
-                        json["summary"] = summary;
-
-                        //contact portion
-                        JObject contact = new JObject();
-                        contactId = sdr.GetGuid(6);
-                        contact["id"] = contactId.ToString();
-                        contact["name"] = sdr.GetString(7);
-                        json["contact"] = contact;
-
-                    }
-                }
-
-                using(SqlCommand cmd = new SqlCommand($@"select cm.Id,
-                    cmm.description,
-                    cm.Value,
-                    cm.verified
-                    from contacttomethods ctm
-                    join contactmode cm on ctm.contactmodeid = cm.id
-                    join contactmodemethod cmm on cm.method = cmm.id
-                    where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
-                {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = contactId;
-                    List<JObject> contactMethods = new List<JObject>();
-                    using(SqlDataReader sdr = cmd.ExecuteReader())
-                    {
-                        if(!sdr.Read())
-                            return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
-                        JObject contactMethod = new JObject();
-                        contactMethod["id"] = sdr.GetGuid(0).ToString();
-                        contactMethod["method"] = sdr.GetString(1);
-                        contactMethod["value"] = sdr.GetString(2);
-                        bool verified = sdr.GetBoolean(3);
-                        contactMethod["verified"] = verified;
-                        contactMethods.Add(contactMethod);
-                    }
-                    json["contact"]["methods"] = JToken.FromObject(contactMethods);
-                }
-
-                using(SqlCommand cmd = new SqlCommand($@"select sl.description
-                    from refugeesummarytolanguages rstl
-                    join spokenlanguages sl on rstl.spokenlanguagesid = sl.id
-                    where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql))
-                {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID].Value = summaryId;
-                    List<string> languages = new List<string>();
-                    using(SqlDataReader sdr = cmd.ExecuteReader())
-                    {
-                        int found = 0;
-                        while(sdr.Read())
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = id;
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
                         {
-                            found++;
-                            languages.Add(sdr.GetString(0));
-                        }
-                        //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
-                        //if(found < 1)
-                        //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
-                    }
-                    json["summary"]["languages"] = JToken.FromObject(languages);
-                }
+                            if(!sdr.Read())
+                                return new BadRequestObjectResult("Error: no refugee with ID '" + id.ToString() + "'");
+                            json["id"] = sdr.GetGuid(0).ToString();
 
-                using(SqlCommand cmd = new SqlCommand($@"select r.description
-                    from refugeesummarytorestrictions rstr
-                    join Restrictions r on rstr.restrictionsid = r.id
-                    where rstr.refugeesummaryid = {PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID}", sql))
-                {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID].Value = summaryId;
-                    List<string> restrictions = new List<string>();
-                    using(SqlDataReader sdr = cmd.ExecuteReader())
+                            //summary portion
+                            JObject summary = new JObject();
+                            summaryId = sdr.GetGuid(1);
+                            summary["id"] = summaryId.ToString();
+                            summary["region"] = sdr.GetString(2);
+                            summary["people"] = sdr.GetInt32(3);
+                            summary["message"] = sdr.GetString(4);
+                            //restrictions
+                            //languages
+                            summary["possession_date"] = sdr.GetDateTimeOffset(5);
+                            json["summary"] = summary;
+
+                            //contact portion
+                            JObject contact = new JObject();
+                            contactId = sdr.GetGuid(6);
+                            contact["id"] = contactId.ToString();
+                            contact["name"] = sdr.GetString(7);
+                            json["contact"] = contact;
+
+                        }
+                    }
+
+                    const string PARAM_CONTACTTOMETHODS_CONTACTID = "@ContactId";
+                    using(SqlCommand cmd = new SqlCommand($@"select cm.Id,
+                        cmm.description,
+                        cm.Value,
+                        cm.verified
+                        from contacttomethods ctm
+                        join contactmode cm on ctm.contactmodeid = cm.id
+                        join contactmodemethod cmm on cm.method = cmm.id
+                        where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
                     {
-                        int found = 0;
-                        while(sdr.Read())
+                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = contactId;
+                        List<JObject> contactMethods = new List<JObject>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
                         {
-                            found++;
-                            restrictions.Add(sdr.GetString(0));
+                            if(!sdr.Read())
+                                return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                            JObject contactMethod = new JObject();
+                            contactMethod["id"] = sdr.GetGuid(0).ToString();
+                            contactMethod["method"] = sdr.GetString(1);
+                            contactMethod["value"] = sdr.GetString(2);
+                            bool verified = sdr.GetBoolean(3);
+                            contactMethod["verified"] = verified;
+                            contactMethods.Add(contactMethod);
                         }
-                        //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
-                        //if(found < 1)
-                        //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                        json["contact"]["methods"] = JToken.FromObject(contactMethods);
                     }
-                    json["summary"]["restrictions"] = JToken.FromObject(restrictions);
+
+                    using(SqlCommand cmd = new SqlCommand($@"select sl.description
+                        from refugeesummarytolanguages rstl
+                        join spokenlanguages sl on rstl.spokenlanguagesid = sl.id
+                        where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID].Value = summaryId;
+                        List<string> languages = new List<string>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            int found = 0;
+                            while(sdr.Read())
+                            {
+                                found++;
+                                languages.Add(sdr.GetString(0));
+                            }
+                            //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
+                            //if(found < 1)
+                            //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                        }
+                        json["summary"]["languages"] = JToken.FromObject(languages);
+                    }
+
+                    using(SqlCommand cmd = new SqlCommand($@"select r.description
+                        from refugeesummarytorestrictions rstr
+                        join Restrictions r on rstr.restrictionsid = r.id
+                        where rstr.refugeesummaryid = {PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID].Value = summaryId;
+                        List<string> restrictions = new List<string>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            int found = 0;
+                            while(sdr.Read())
+                            {
+                                found++;
+                                restrictions.Add(sdr.GetString(0));
+                            }
+                            //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
+                            //if(found < 1)
+                            //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                        }
+                        json["summary"]["restrictions"] = JToken.FromObject(restrictions);
+                    }
+
+                    sql.Close();
+
+                    return new OkObjectResult(json.ToString());
                 }
-
-                sql.Close();
-
-                return new OkObjectResult(json.ToString());
             }
-
-
-            // TODO: Handle Documented Responses.
-            // Spec Defines: HTTP 200
-            // Spec Defines: HTTP 404
-
-            throw new NotImplementedException();
+            catch(Exception exc)
+            {
+                //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                return new StatusCodeResult(404);
+            }
         }
 
         /// <summary> Updates a refugee in the system. </summary>
@@ -404,12 +355,53 @@ namespace SiteOfRefuge.API
         public async Task<IActionResult> DeleteRefugeeAsync([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "refugees/{id}")] HttpRequest req, Guid id, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("HTTP trigger function processed a request.");
+            try
+            {
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
 
-            // TODO: Handle Documented Responses.
-            // Spec Defines: HTTP 202
-            // Spec Defines: HTTP 404
+                    using(SqlCommand cmd = new SqlCommand($@"
+                        BEGIN TRANSACTION;
+                        GO
+                        declare @refugeeid uniqueidentifier;
+                        set @refugeeid = {PARAM_REFUGEE_ID};
 
-            throw new NotImplementedException();
+                        declare @contactid uniqueidentifier;
+                        set @contactid = (select top 1 Contact from Refugee where Id = @refugeeid);
+                        declare @summaryid uniqueidentifier;
+                        set @summaryid = (select top 1 Summary from Refugee where Id = @refugeeid);
+
+                        select contactmodeid into #contactmodestodelete from contacttomethods where contactid = @contactid;
+                        delete from contacttomethods where contactid = @contactid;
+                        delete from contactmode where id in (select contactmodeid from #contactmodestodelete);
+                        drop table #contactmodestodelete;
+
+                        delete from refugeesummarytolanguages where refugeesummaryid = @summaryid;
+                        delete from refugeesummarytorestrictions where refugeesummaryid = @summaryid;
+
+                        delete from refugee where id = @refugeeid;
+                        delete from refugeesummary where id = @summaryid;
+                        delete from contact where id = @contactid;
+
+                        GO
+                        if @@error != 0 raiserror('Error deleting', 20, -1) with log
+                        GO
+
+                        COMMIT TRANSACTION;", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = id;
+                        cmd.ExecuteNonQuery();
+                        return new StatusCodeResult(202);
+                    }
+                }
+            }
+            catch(Exception exc)
+            {
+                //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                return new StatusCodeResult(404);
+            }
         }
     }
 }

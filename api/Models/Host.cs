@@ -12,6 +12,11 @@ namespace SiteOfRefuge.API.Models
     /// <summary> Detailed information about a host. </summary>
     public partial class Host
     {
+        //paramaterless constructor required to hydrate automatically as param
+        public Host()
+        {
+        }
+
         /// <summary> Initializes a new instance of Host. </summary>
         /// <param name="summary"> Summary of a Host. </param>
         /// <param name="contact"> Contact information of a person. </param>

@@ -8,12 +8,16 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Data.Sql;
+using System.Data.SqlClient;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using SiteOfRefuge.API.Models;
+using Newtonsoft.Json.Linq;
 
 namespace SiteOfRefuge.API
 {
@@ -48,6 +52,27 @@ namespace SiteOfRefuge.API
             throw new NotImplementedException();
         }
 
+        //have to repeat the parameters 3 times (query, create param, set param value), so helps avoid typos and increases maintainability
+        const string PARAM_HOST_ID = "@HostId";
+        const string PARAM_HOSTSUMMARY_ID = "@HostSummaryId";
+        const string PARAM_HOSTSUMMARY_REGION = "@Region";
+        const string PARAM_HOSTSUMMARY_PEOPLE = "@People";
+        const string PARAM_HOSTSUMMARY_MESSAGE = "@Message";
+        const string PARAM_HOSTSUMMARY_POSSESSIONDATE = "@PossessionDate";
+        const string PARAM_HOSTSUMMARY_SHELTER = "@Shelter";
+        const string PARAM_HOST_SUMMARY = "@Summary";
+        const string PARAM_HOST_CONTACT = "@Contact";
+        const string PARAM_HOSTSUMMARYTORESTRICTIONS_REFUGEESUMMARYID = "@HostSummaryId";
+        const string PARAM_HOSTSUMMARYTORESTRICTIONS_RESTRICTIONVALUE = "@RestrictionValue";
+        const string PARAM_HOSTSUMMARYTOLANGUAGES_REFUGEESUMMARYID = "@HostSummaryId";
+        const string PARAM_HOSTSUMMARYTOLANGUAGES_LANGUAGEVALUE = "@LanguageValue";
+        const string PARAM_HOSTSUMMARYTOLANGUAGES_SUMMARYID = "@SummaryId";
+        const string PARAM_HOSTSUMMARYTORESTRICTIONS_SUMMARYID = "@SummaryId";
+        const string PARAM_AVAILABILITY_ID = "@AvailabilityId";
+        const string PARAM_AVAILABILITY_DATE_AVAILABLE = "@DateAvailable";
+        const string PARAM_AVAILABILITY_ACTIVE = "@Active";
+        const string PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE = "@LengthOfStayValue";
+        const string PARAM_HOSTSUMMARY_AVAILABILITY = "@AvailabilityId";
         /// <summary> Registers a new host in the system. </summary>
         /// <param name="body"> The Host to use. </param>
         /// <param name="req"> Raw HTTP Request. </param>
@@ -58,10 +83,126 @@ namespace SiteOfRefuge.API
         {
             _logger.LogInformation("HTTP trigger function processed a request.");
 
+            /*
+                {
+                "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
+                "summary": {
+                    "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
+                    "region": "PL-26",
+                    "allowed_people": 2,
+                    "restrictions": [
+                    "Pets"
+                    ],
+                    "message": "We have a free bedroom in our house. We can come pick you up.",
+                    "shelter": "House with several rooms",
+                    "languages": [
+                    "English"
+                    ],
+                    "availability": {
+                    "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
+                    "date_available": "2022-03-06",
+                    "active": true,
+                    "length_of_stay": "A few days, up to a week"
+                    }
+                },
+                "contact": {
+                    "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
+                    "name": "string",
+                    "methods": [
+                    {
+                        "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
+                        "method": "Phone",
+                        "value": "string",
+                        "verified": false
+                    }
+                    ]
+                }
+                }
+            */
+
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 201
+            if(body == null)
+                throw new ArgumentNullException();
+            
+            //WARNING: trusting Id in body.Id (is this passed in from the request?) -- if we need to use an auth thing will need some code to update this
 
-            throw new NotImplementedException();
+            using(SqlConnection sql = SqlShared.GetSqlConnection())
+            {
+                sql.Open();
+                using(SqlTransaction transaction = sql.BeginTransaction())
+                {
+                    try
+                    {
+                        SqlShared.InsertContactModes(sql, transaction, body.Contact.Methods);
+                        SqlShared.InsertContact(sql, transaction, body.Contact);
+                        SqlShared.InsertContactToMethods(sql, transaction, body.Contact.Methods, body.Contact.Id);
+
+
+                        //TODO: availability, referencing availabilitylengthofstay
+                        using(SqlCommand cmd = new SqlCommand($@"insert into Availability(Id, DateAvailable, Active, LengthOfStay) values(
+                            {PARAM_AVAILABILITY_ID}, {PARAM_AVAILABILITY_DATE_AVAILABLE}, {PARAM_AVAILABILITY_ACTIVE}, (select top 1 Id from AvailabilityLengthOfStay where value = {PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE}));", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_AVAILABILITY_ID].Value = body.Summary.Availability.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_DATE_AVAILABLE, System.Data.SqlDbType.DateTimeOffset));
+                            cmd.Parameters[PARAM_AVAILABILITY_DATE_AVAILABLE].Value = body.Summary.Availability.DateAvailable is null ? DBNull.Value : body.Summary.Availability.DateAvailable;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ACTIVE, System.Data.SqlDbType.Bit));
+                            cmd.Parameters[PARAM_AVAILABILITY_ACTIVE].Value = (body.Summary.Availability.Active.HasValue && body.Summary.Availability.Active.Value) ? 1 : 0;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE].Value = body.Summary.Availability.LengthOfStay is null ? DBNull.Value : body.Summary.Availability.LengthOfStay.Value.Value;
+
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        //QUESTION: shelter? (treating as string unless do more here...)
+
+                        using(SqlCommand cmd = new SqlCommand($@"insert into HostSummary(Id, Region, AllowedPeople, Message, Shelter, Availability) values(
+                            {PARAM_HOSTSUMMARY_ID}, {PARAM_HOSTSUMMARY_REGION}, {PARAM_HOSTSUMMARY_PEOPLE}, {PARAM_HOSTSUMMARY_MESSAGE}, {PARAM_HOSTSUMMARY_SHELTER}, {PARAM_HOSTSUMMARY_AVAILABILITY});", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_ID].Value = body.Summary.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_REGION, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_REGION].Value = body.Summary.Region;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_PEOPLE, System.Data.SqlDbType.Int));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_PEOPLE].Value = body.Summary.AllowedPeople;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_MESSAGE].Value = body.Summary.Message;
+
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_SHELTER, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_SHELTER].Value = body.Summary.Shelter;
+
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_AVAILABILITY, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_AVAILABILITY].Value = body.Summary.Availability.Id is null ? DBNull.Value : body.Summary.Availability.Id;
+
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        const string TABLE_NAME = "Host";
+                        SqlShared.InsertCustomer(sql, transaction, body.Id, body.Summary.Id, body.Contact.Id, TABLE_NAME);
+
+                        const string RESTRICTIONS_TABLE_NAME = "HostSummaryToRestrictions";
+                        const string RESTRICTIONS_ID_COLUMN_NAME = "HostSummaryId";
+                        SqlShared.InsertRestrictionsList(sql, transaction, body.Summary.Restrictions, RESTRICTIONS_TABLE_NAME, RESTRICTIONS_ID_COLUMN_NAME, body.Summary.Id);
+
+                        const string LANGUAGES_TABLE_NAME = "HostSummaryToLanguages";
+                        const string LANGUAGES_ID_COLUMN_NAME = "HostSummaryId";
+                        SqlShared.InsertLanguageList(sql, transaction, body.Summary.Languages, LANGUAGES_TABLE_NAME, LANGUAGES_ID_COLUMN_NAME, body.Summary.Id);
+                    }
+                    catch (Exception exc)
+                    {
+                        transaction.Rollback();
+                        return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                        //return new BadRequestResult();
+                    }
+                    transaction.Commit();
+                }
+                
+                sql.Close();
+            }
+            // TODO: Handle Documented Responses.
+            // Spec Defines: HTTP 201
+            return new OkObjectResult("Success");
         }
 
         /// <summary> Get information about a specific host. </summary>

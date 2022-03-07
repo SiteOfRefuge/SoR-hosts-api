@@ -1,4 +1,4 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[Availability](
+CREATE TABLE [Availability](
 	[Id] [uniqueidentifier] NOT NULL,
 	[DateAvailable] [datetimeoffset](4) NULL,
 	[Active] [bit] NULL,
@@ -8,5 +8,5 @@ CREATE TABLE [SiteOfRefugeAPI.Models].[Availability](
 	[Id]
 ),
  CONSTRAINT [FK_Availability_AvailabilityLengthOfStay] FOREIGN KEY([LengthOfStay])
-REFERENCES [SiteOfRefugeAPI.Models].[AvailabilityLengthOfStay] ([Id])
+REFERENCES [AvailabilityLengthOfStay] ([Id])
 )
