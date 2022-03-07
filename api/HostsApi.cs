@@ -83,43 +83,6 @@ namespace SiteOfRefuge.API
         {
             _logger.LogInformation("HTTP trigger function processed a request.");
 
-            /*
-                {
-                "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
-                "summary": {
-                    "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
-                    "region": "PL-26",
-                    "allowed_people": 2,
-                    "restrictions": [
-                    "Pets"
-                    ],
-                    "message": "We have a free bedroom in our house. We can come pick you up.",
-                    "shelter": "House with several rooms",
-                    "languages": [
-                    "English"
-                    ],
-                    "availability": {
-                    "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
-                    "date_available": "2022-03-06",
-                    "active": true,
-                    "length_of_stay": "A few days, up to a week"
-                    }
-                },
-                "contact": {
-                    "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
-                    "name": "string",
-                    "methods": [
-                    {
-                        "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
-                        "method": "Phone",
-                        "value": "string",
-                        "verified": false
-                    }
-                    ]
-                }
-                }
-            */
-
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 201
             if(body == null)
