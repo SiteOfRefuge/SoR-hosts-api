@@ -69,15 +69,15 @@ namespace SiteOfRefuge.API
         /// <param name="req"> Raw HTTP Request. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="body"/> is null. </exception>
         [Function(nameof(AddHost))]
-        public async Task<HttpResponseData> AddHost([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "hosts")] Host body, HttpRequestData req, FunctionContext context)
+        public async Task<HttpResponseData> AddHost([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "hosts")] HttpRequestData req, FunctionContext context)
         {
             var logger = context.GetLogger(nameof(AddHost));
             logger.LogInformation("HTTP trigger function processed a request.");
 
-            /*
             // TODO: Handle Documented Responses.
-            Host host = null;
+            Host body = null;
             var response = req.CreateResponse(HttpStatusCode.OK);
+            //JObject j = null;
 
             if (req.Body is not null)
             {
@@ -85,7 +85,8 @@ namespace SiteOfRefuge.API
                 {
                     var reader = new StreamReader(req.Body);
                     var respBody = await reader.ReadToEndAsync();
-                    host = Newtonsoft.Json.JsonConvert.DeserializeObject<Host>(respBody);
+                    //j = JObject.Parse(respBody);
+                    body = Newtonsoft.Json.JsonConvert.DeserializeObject<Host>(respBody);
                 }
                 catch(Exception exc)
                 {
@@ -171,7 +172,7 @@ namespace SiteOfRefuge.API
             // Spec Defines: HTTP 201
             response.StatusCode = HttpStatusCode.Created;
             return response;            // Spec Defines: HTTP 201
-            */
+
             throw new NotImplementedException();
         }
 
@@ -186,7 +187,6 @@ namespace SiteOfRefuge.API
             logger.LogInformation("HTTP trigger function processed a request.");
 
             // TODO: Handle Documented Responses.
-            /*
             try
             { 
                 using(SqlConnection sql = SqlShared.GetSqlConnection())
@@ -229,7 +229,7 @@ namespace SiteOfRefuge.API
                             if(!sdr.Read())
                             {
                                 var resp2 = req.CreateResponse(HttpStatusCode.BadRequest);
-                                resp2.WriteStringAsync("Error: no refugee with ID '" + id.ToString() + "'");
+                                resp2.WriteStringAsync("Error: no host with ID '" + id.ToString() + "'");
                                 return resp2;
                             }
                             json["id"] = sdr.GetGuid(0).ToString();
@@ -364,8 +364,6 @@ namespace SiteOfRefuge.API
                 resp.WriteStringAsync(exc.ToString());
                 return resp;
             }
-                */
-                throw new NotImplementedException();
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404
         }
@@ -396,7 +394,6 @@ namespace SiteOfRefuge.API
         [Function(nameof(DeleteHost))]
         public HttpResponseData DeleteHost([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "hosts/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {
-            /*
             var logger = context.GetLogger(nameof(DeleteHost));            
             logger.LogInformation( $"HTTP trigger function processed a request for {id.ToString()}");
 
@@ -411,7 +408,7 @@ namespace SiteOfRefuge.API
                 {
                     sql.Open();
 
-                    using(SqlCommand cmd = new SqlCommand($@"exec DeleteRefugee @refugeeid = {PARAM_HOST_ID}", sql))
+                    using(SqlCommand cmd = new SqlCommand($@"exec DeleteHost @hostid = {PARAM_HOST_ID}", sql))
                     {
                         cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
                         cmd.Parameters[PARAM_HOST_ID].Value = id;
@@ -430,8 +427,6 @@ namespace SiteOfRefuge.API
             // Spec Defines: HTTP 404
             response.StatusCode = HttpStatusCode.Accepted;
             return response; 
-            */
-            throw new NotImplementedException();
         }
     }
 }
