@@ -54,19 +54,29 @@ namespace SiteOfRefuge.API
         /// <param name="req"> Raw HTTP Request. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="body"/> is null. </exception>
         [Function(nameof(AddRefugee))]
-        public async Task<HttpResponseData> AddRefugee([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "refugees")] HttpRequestData req,  FunctionContext context) 
+        public async Task<HttpResponseData> AddRefugee([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "refugees")] HttpRequestData req, FunctionContext context) 
         {
             var logger = context.GetLogger(nameof(AddRefugee));
             logger.LogInformation("HTTP trigger function processed a request.");
 
             Refugee refugee = null;
+            var response = req.CreateResponse(HttpStatusCode.OK);
 
             if (req.Body is not null)
             {
-                refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
+                try
+                {
+                    refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
+                }
+                catch(Exception exc)
+                {
+                    logger.LogInformation($"{context.InvocationId.ToString()} - Error deserializing Refugee object. Err: {exc.Message}");
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    return response;
+                }
             }
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
+            response.StatusCode = HttpStatusCode.OK;                    
             await response.WriteAsJsonAsync(refugee);
             return response;
         }
