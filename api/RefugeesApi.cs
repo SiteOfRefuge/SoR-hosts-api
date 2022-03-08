@@ -8,6 +8,8 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -20,6 +22,12 @@ namespace SiteOfRefuge.API
     {
         /// <summary> Initializes a new instance of RefugeesApi. </summary>
         public RefugeesApi() {}
+
+        static JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true
+        };
 
         /// <summary> Get a summary list of refugees registered in the system. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
@@ -46,10 +54,17 @@ namespace SiteOfRefuge.API
         /// <param name="req"> Raw HTTP Request. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="body"/> is null. </exception>
         [Function(nameof(AddRefugee))]
-        public HttpResponseData AddRefugee([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "refugees")] Refugee body, HttpRequestData req, FunctionContext context)
+        public async Task<HttpResponseData> AddRefugee([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "refugees")] HttpRequestData req,  FunctionContext context) 
         {
             var logger = context.GetLogger(nameof(AddRefugee));
             logger.LogInformation("HTTP trigger function processed a request.");
+
+            Refugee refugee = null;
+
+            if (req.Body is not null)
+            {
+                refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
+            }
 
 
             // TODO: Handle Documented Responses.
