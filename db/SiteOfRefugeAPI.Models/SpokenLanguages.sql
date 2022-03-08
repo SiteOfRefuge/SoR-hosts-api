@@ -1,4 +1,4 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[SpokenLanguages](
+CREATE TABLE [SpokenLanguages](
 	[Id] [int] NOT NULL,
 	[description] [nvarchar](50) NOT NULL,
 	[value] [nvarchar](50) NOT NULL,

@@ -1,13 +1,14 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[Refugee](
+CREATE TABLE [Refugee](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Summary] [uniqueidentifier],
 	[Contact] [uniqueidentifier],
+	IsEnabled bit constraint refugee_enabled_default default 1	
  CONSTRAINT [PK_Refugee] PRIMARY KEY CLUSTERED 
 (
 	[Id]
 ),
  CONSTRAINT [FK_Refugee_Contact] FOREIGN KEY([Contact])
-REFERENCES [SiteOfRefugeAPI.Models].[Contact] ([Id]),
+REFERENCES [Contact] ([Id]),
  CONSTRAINT [FK_Refugee_RefugeeSummary] FOREIGN KEY([Summary])
-REFERENCES [SiteOfRefugeAPI.Models].[RefugeeSummary] ([Id])
+REFERENCES [RefugeeSummary] ([Id])
 )

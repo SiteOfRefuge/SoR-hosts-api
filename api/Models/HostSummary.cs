@@ -14,6 +14,8 @@ namespace SiteOfRefuge.API.Models
     /// <summary> Summary of a Host. </summary>
     public partial class HostSummary
     {
+        public HostSummary() { } 
+        
         /// <summary> Initializes a new instance of HostSummary. </summary>
         /// <param name="id"> Unique identifier in UUID/GUID format. </param>
         /// <param name="region"> The region where the person is located. This is in ISO 3166-2 format. </param>

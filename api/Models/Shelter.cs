@@ -15,6 +15,8 @@ namespace SiteOfRefuge.API
     {
         private readonly string _value;
 
+        public Shelter() { this._value = null; }
+
         /// <summary> Determines if two <see cref="Shelter"/> values are the same. </summary>
         /// <exception cref="ArgumentNullException"> <paramref name="value"/> is null. </exception>
         public Shelter(string value)

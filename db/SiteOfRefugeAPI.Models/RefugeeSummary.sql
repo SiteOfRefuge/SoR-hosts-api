@@ -1,4 +1,4 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[RefugeeSummary](
+CREATE TABLE [RefugeeSummary](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Region] [nvarchar](4000) NOT NULL,
 	[People] [int] NOT NULL,

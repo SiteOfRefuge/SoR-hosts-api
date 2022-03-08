@@ -14,12 +14,12 @@ namespace SiteOfRefuge.API.Models
     public partial class Contact
     {
         public Contact() {}
-        
+
         /// <summary> Initializes a new instance of Contact. </summary>
         /// <param name="name"> The person&apos;s full name. </param>
         /// <param name="methods"> The way(s) in which this person can be contacted. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="name"/> or <paramref name="methods"/> is null. </exception>
-        public Contact(string name, List<ContactMode> methods)
+        public Contact(string name, IList<ContactMode> methods)
         {
             if (name == null)
             {
@@ -50,6 +50,6 @@ namespace SiteOfRefuge.API.Models
         /// <summary> The person&apos;s full name. </summary>
         public string Name { get; set; }
         /// <summary> The way(s) in which this person can be contacted. </summary>
-        public IList<ContactMode> Methods { get; }
+        public IList<ContactMode> Methods { get; set; }
     }
 }

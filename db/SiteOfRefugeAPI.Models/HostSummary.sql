@@ -1,4 +1,4 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[HostSummary](
+CREATE TABLE [HostSummary](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Region] [nvarchar](4000) NOT NULL,
 	[AllowedPeople] [int] NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE [SiteOfRefugeAPI.Models].[HostSummary](
 	[Id]
 ),
  CONSTRAINT [FK_HostSummary_Availability] FOREIGN KEY([Availability])
-REFERENCES [SiteOfRefugeAPI.Models].[Availability] ([Id])
+REFERENCES [Availability] ([Id])
 )
 
 -- Property 'Restrictions' is a list (1..* relationship), so it's been added as a secondary table

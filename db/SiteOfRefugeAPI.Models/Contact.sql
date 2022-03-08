@@ -1,4 +1,4 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[Contact](
+CREATE TABLE [Contact](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Name] [nvarchar](4000) NOT NULL,
  CONSTRAINT [PK_Contact] PRIMARY KEY CLUSTERED 

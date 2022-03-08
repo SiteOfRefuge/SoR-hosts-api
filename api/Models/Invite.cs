@@ -12,6 +12,8 @@ namespace SiteOfRefuge.API.Models
     /// <summary> An invitation to connect. </summary>
     public partial class Invite
     {
+        public Invite() {}
+        
         /// <summary> Initializes a new instance of Invite. </summary>
         /// <param name="refugeeId"> Unique identifier in UUID/GUID format. </param>
         /// <param name="hostId"> Unique identifier in UUID/GUID format. </param>

@@ -1,4 +1,4 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[ContactMode](
+CREATE TABLE [ContactMode](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Method] [int],
 	[Value] [nvarchar](4000) NOT NULL,
@@ -8,5 +8,5 @@ CREATE TABLE [SiteOfRefugeAPI.Models].[ContactMode](
 	[Id]
 ),
  CONSTRAINT [FK_ContactMode_ContactModeMethod] FOREIGN KEY([Method])
-REFERENCES [SiteOfRefugeAPI.Models].[ContactModeMethod] ([Id])
+REFERENCES [ContactModeMethod] ([Id])
 )

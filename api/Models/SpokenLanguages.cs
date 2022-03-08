@@ -14,6 +14,9 @@ namespace SiteOfRefuge.API
     public readonly partial struct SpokenLanguages : IEquatable<SpokenLanguages>
     {
         private readonly string _value;
+        public string Value { get { return this._value; } }
+
+        public SpokenLanguages() { this._value = null; }
 
         /// <summary> Determines if two <see cref="SpokenLanguages"/> values are the same. </summary>
         /// <exception cref="ArgumentNullException"> <paramref name="value"/> is null. </exception>

@@ -7,6 +7,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.IO;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -22,6 +24,21 @@ namespace SiteOfRefuge.API
     {
         /// <summary> Initializes a new instance of RefugeesApi. </summary>
         public RefugeesApi() {}
+
+        const string PARAM_REFUGEE_ID = "@Id";
+        const string PARAM_REFUGEESUMMARY_ID = "@Id";
+        const string PARAM_REFUGEESUMMARY_REGION = "@Region";
+        const string PARAM_REFUGEESUMMARY_PEOPLE = "@People";
+        const string PARAM_REFUGEESUMMARY_MESSAGE = "@Message";
+        const string PARAM_REFUGEESUMMARY_POSSESSIONDATE = "@PossessionDate";
+        const string PARAM_REFUGEE_SUMMARY = "@Summary";
+        const string PARAM_REFUGEE_CONTACT = "@Contact";
+        const string PARAM_REFUGEESUMMARYTORESTRICTIONS_REFUGEESUMMARYID = "@RefugeeSummaryId";
+        const string PARAM_REFUGEESUMMARYTORESTRICTIONS_RESTRICTIONVALUE = "@RestrictionValue";
+        const string PARAM_REFUGEESUMMARYTOLANGUAGES_REFUGEESUMMARYID = "@RefugeeSummaryId";
+        const string PARAM_REFUGEESUMMARYTOLANGUAGES_LANGUAGEVALUE = "@LanguageValue";
+        const string PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID = "@SummaryId";
+        const string PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID = "@SummaryId";     
 
         static JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
         {
@@ -66,7 +83,11 @@ namespace SiteOfRefuge.API
             {
                 try
                 {
-                    refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
+                    var reader = new StreamReader(req.Body);
+                    var respBody = await reader.ReadToEndAsync();
+                    refugee = Newtonsoft.Json.JsonConvert.DeserializeObject<Refugee>(respBody);
+
+                    // refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
                 }
                 catch(Exception exc)
                 {
@@ -76,8 +97,75 @@ namespace SiteOfRefuge.API
                 }
             }
 
-            response.StatusCode = HttpStatusCode.OK;                    
-            await response.WriteAsJsonAsync(refugee);
+            using(SqlConnection sql = SqlShared.GetSqlConnection())
+            {
+                sql.Open();
+                using(SqlCommand cmd = new SqlCommand($"select top 1 * from Refugee where Id = {PARAM_REFUGEE_ID}" , sql))
+                {
+                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                    cmd.Parameters[PARAM_REFUGEE_ID].Value = refugee.Id;
+                    using(SqlDataReader sdr = cmd.ExecuteReader())
+                    {
+                        if(sdr.Read())
+                        {
+                            response.StatusCode = HttpStatusCode.BadRequest;
+                            await response.WriteStringAsync( $"Error: trying to create a refugee with Id '{refugee.Id.ToString()}' but a refugee with this Id already exists in the database.");
+                            return response;
+                        }
+                    }
+                }
+
+                using(SqlTransaction transaction = sql.BeginTransaction())
+                {
+                    try
+                    {
+                        SqlShared.InsertContactModes(sql, transaction, refugee.Contact.Methods);
+                        SqlShared.InsertContact(sql, transaction, refugee.Contact);
+                        SqlShared.InsertContactToMethods(sql, transaction, refugee.Contact.Methods, refugee.Contact.Id);
+
+                        using(SqlCommand cmd = new SqlCommand($@"insert into RefugeeSummary(Id, Region, People, Message, PossessionDate) values(
+                            {PARAM_REFUGEESUMMARY_ID}, {PARAM_REFUGEESUMMARY_REGION}, {PARAM_REFUGEESUMMARY_PEOPLE}, {PARAM_REFUGEESUMMARY_MESSAGE}, {PARAM_REFUGEESUMMARY_POSSESSIONDATE});", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_ID].Value = refugee.Summary.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_REGION, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_REGION].Value = refugee.Summary.Region;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_PEOPLE, System.Data.SqlDbType.Int));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_PEOPLE].Value = refugee.Summary.People;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_MESSAGE].Value = refugee.Summary.Message;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_POSSESSIONDATE, System.Data.SqlDbType.DateTimeOffset));
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_POSSESSIONDATE].Value = refugee.Summary.PossessionDate;
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        const string TABLE_NAME = "Refugee";
+                        SqlShared.InsertCustomer(sql, transaction, refugee.Id, refugee.Summary.Id, refugee.Contact.Id, TABLE_NAME);
+
+                        const string RESTRICTIONS_TABLE_NAME = "RefugeeSummaryToRestrictions";
+                        const string RESTRICTIONS_ID_COLUMN_NAME = "RefugeeSummaryId";
+                        SqlShared.InsertRestrictionsList(sql, transaction, refugee.Summary.Restrictions, RESTRICTIONS_TABLE_NAME, RESTRICTIONS_ID_COLUMN_NAME, refugee.Summary.Id);
+
+                        const string LANGUAGES_TABLE_NAME = "RefugeeSummaryToLanguages";
+                        const string LANGUAGES_ID_COLUMN_NAME = "RefugeeSummaryId";
+                        SqlShared.InsertLanguageList(sql, transaction, refugee.Summary.Languages, LANGUAGES_TABLE_NAME, LANGUAGES_ID_COLUMN_NAME, refugee.Summary.Id);
+                    }
+                    catch (Exception exc)
+                    {
+                        transaction.Rollback();
+                        response.StatusCode = HttpStatusCode.BadRequest;
+                        logger.LogInformation($"{context.InvocationId.ToString()} - Error POSTing refugee Err: {exc.ToString()}");
+                    
+                        await response.WriteStringAsync(exc.Message);
+                        return response;
+                    }
+                    transaction.Commit();
+                }
+                
+                sql.Close();
+            }
+
+            response.StatusCode = HttpStatusCode.Created;                    
             return response;
         }
 

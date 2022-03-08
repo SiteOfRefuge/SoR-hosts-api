@@ -12,6 +12,8 @@ namespace SiteOfRefuge.API.Models
     /// <summary> Detailed information about a refugee and their family. </summary>
     public partial class Refugee
     {
+        public Refugee() {}
+        
         /// <summary> Initializes a new instance of Refugee. </summary>
         /// <param name="summary"> A summary of a refugee. </param>
         /// <param name="contact"> Contact information of a person. </param>

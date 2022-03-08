@@ -13,6 +13,8 @@ namespace SiteOfRefuge.API.Models
     /// <summary> The method in which this person can be contacted. </summary>
     public partial class ContactMode
     {
+        public ContactMode() {}
+        
         /// <summary> Initializes a new instance of ContactMode. </summary>
         /// <param name="method"> The actual way to contact this person. </param>
         /// <param name="value"> The details on how to contact this person (actual phone number, email address etc). </param>
