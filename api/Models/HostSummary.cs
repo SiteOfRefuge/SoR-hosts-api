@@ -74,11 +74,11 @@ namespace SiteOfRefuge.API.Models
         public string Region { get; set; }
         public int AllowedPeople { get; set; }
         /// <summary> Any restrictions the host has for this shelter. </summary>
-        public IList<Restrictions> Restrictions { get; }
+        public IList<Restrictions> Restrictions { get; set; }
         /// <summary> A freeform text field that allows for a personalized message. </summary>
         public string Message { get; set; }
         public string Shelter { get; set; }
-        public IList<SpokenLanguages> Languages { get; }
+        public IList<SpokenLanguages> Languages { get; set; }
         public Availability Availability { get; set; }
     }
 }

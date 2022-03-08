@@ -6,9 +6,15 @@
 #nullable disable
 
 using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.IO;
+using System.Net;
+using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using SiteOfRefuge.API.Middleware;
 using SiteOfRefuge.API.Models;
 
@@ -16,6 +22,29 @@ namespace SiteOfRefuge.API
 {
     public class HostsApi
     {
+
+
+        //have to repeat the parameters 3 times (query, create param, set param value), so helps avoid typos and increases maintainability
+        const string PARAM_HOST_ID = "@HostId";
+        const string PARAM_HOSTSUMMARY_ID = "@HostSummaryId";
+        const string PARAM_HOSTSUMMARY_REGION = "@Region";
+        const string PARAM_HOSTSUMMARY_PEOPLE = "@People";
+        const string PARAM_HOSTSUMMARY_MESSAGE = "@Message";
+        const string PARAM_HOSTSUMMARY_POSSESSIONDATE = "@PossessionDate";
+        const string PARAM_HOSTSUMMARY_SHELTER = "@Shelter";
+        const string PARAM_HOST_SUMMARY = "@Summary";
+        const string PARAM_HOST_CONTACT = "@Contact";
+        const string PARAM_HOSTSUMMARYTORESTRICTIONS_REFUGEESUMMARYID = "@HostSummaryId";
+        const string PARAM_HOSTSUMMARYTORESTRICTIONS_RESTRICTIONVALUE = "@RestrictionValue";
+        const string PARAM_HOSTSUMMARYTOLANGUAGES_REFUGEESUMMARYID = "@HostSummaryId";
+        const string PARAM_HOSTSUMMARYTOLANGUAGES_LANGUAGEVALUE = "@LanguageValue";
+        const string PARAM_HOSTSUMMARYTOLANGUAGES_SUMMARYID = "@SummaryId";
+        const string PARAM_HOSTSUMMARYTORESTRICTIONS_SUMMARYID = "@SummaryId";
+        const string PARAM_AVAILABILITY_ID = "@AvailabilityId";
+        const string PARAM_AVAILABILITY_DATE_AVAILABLE = "@DateAvailable";
+        const string PARAM_AVAILABILITY_ACTIVE = "@Active";
+        const string PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE = "@LengthOfStayValue";
+        const string PARAM_HOSTSUMMARY_AVAILABILITY = "@AvailabilityId";
 
         /// <summary> Initializes a new instance of HostsApi. </summary>
         public HostsApi() {}
@@ -40,14 +69,109 @@ namespace SiteOfRefuge.API
         /// <param name="req"> Raw HTTP Request. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="body"/> is null. </exception>
         [Function(nameof(AddHost))]
-        public HttpResponseData AddHost([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "hosts")] Host body, HttpRequestData req, FunctionContext context)
+        public async Task<HttpResponseData> AddHost([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "hosts")] Host body, HttpRequestData req, FunctionContext context)
         {
             var logger = context.GetLogger(nameof(AddHost));
             logger.LogInformation("HTTP trigger function processed a request.");
 
+            /*
             // TODO: Handle Documented Responses.
-            // Spec Defines: HTTP 201
+            Host host = null;
+            var response = req.CreateResponse(HttpStatusCode.OK);
 
+            if (req.Body is not null)
+            {
+                try
+                {
+                    var reader = new StreamReader(req.Body);
+                    var respBody = await reader.ReadToEndAsync();
+                    host = Newtonsoft.Json.JsonConvert.DeserializeObject<Host>(respBody);
+                }
+                catch(Exception exc)
+                {
+                    logger.LogInformation($"{context.InvocationId.ToString()} - Error deserializing Refugee object. Err: {exc.Message}");
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    return response;
+                }
+            }            
+            
+            using(SqlConnection sql = SqlShared.GetSqlConnection())
+            {
+                sql.Open();
+                using(SqlTransaction transaction = sql.BeginTransaction())
+                {
+                    try
+                    {
+                        SqlShared.InsertContactModes(sql, transaction, body.Contact.Methods);
+                        SqlShared.InsertContact(sql, transaction, body.Contact);
+                        SqlShared.InsertContactToMethods(sql, transaction, body.Contact.Methods, body.Contact.Id);
+
+                        //TODO: availability, referencing availabilitylengthofstay
+                        using(SqlCommand cmd = new SqlCommand($@"insert into Availability(Id, DateAvailable, Active, LengthOfStay) values(
+                            {PARAM_AVAILABILITY_ID}, {PARAM_AVAILABILITY_DATE_AVAILABLE}, {PARAM_AVAILABILITY_ACTIVE}, (select top 1 Id from AvailabilityLengthOfStay where value = {PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE}));", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_AVAILABILITY_ID].Value = body.Summary.Availability.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_DATE_AVAILABLE, System.Data.SqlDbType.DateTimeOffset));
+                            cmd.Parameters[PARAM_AVAILABILITY_DATE_AVAILABLE].Value = body.Summary.Availability.DateAvailable is null ? DBNull.Value : body.Summary.Availability.DateAvailable;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ACTIVE, System.Data.SqlDbType.Bit));
+                            cmd.Parameters[PARAM_AVAILABILITY_ACTIVE].Value = (body.Summary.Availability.Active.HasValue && body.Summary.Availability.Active.Value) ? 1 : 0;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE].Value = body.Summary.Availability.LengthOfStay is null ? DBNull.Value : body.Summary.Availability.LengthOfStay.Value.Value;
+
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        //QUESTION: shelter? (treating as string unless do more here...)
+
+                        using(SqlCommand cmd = new SqlCommand($@"insert into HostSummary(Id, Region, AllowedPeople, Message, Shelter, Availability) values(
+                            {PARAM_HOSTSUMMARY_ID}, {PARAM_HOSTSUMMARY_REGION}, {PARAM_HOSTSUMMARY_PEOPLE}, {PARAM_HOSTSUMMARY_MESSAGE}, {PARAM_HOSTSUMMARY_SHELTER}, {PARAM_HOSTSUMMARY_AVAILABILITY});", sql, transaction))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_ID].Value = body.Summary.Id;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_REGION, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_REGION].Value = body.Summary.Region;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_PEOPLE, System.Data.SqlDbType.Int));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_PEOPLE].Value = body.Summary.AllowedPeople;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_MESSAGE].Value = body.Summary.Message;
+
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_SHELTER, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_SHELTER].Value = body.Summary.Shelter;
+
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_AVAILABILITY, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_HOSTSUMMARY_AVAILABILITY].Value = body.Summary.Availability.Id is null ? DBNull.Value : body.Summary.Availability.Id;
+
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        const string TABLE_NAME = "Host";
+                        SqlShared.InsertCustomer(sql, transaction, body.Id, body.Summary.Id, body.Contact.Id, TABLE_NAME);
+
+                        const string RESTRICTIONS_TABLE_NAME = "HostSummaryToRestrictions";
+                        const string RESTRICTIONS_ID_COLUMN_NAME = "HostSummaryId";
+                        SqlShared.InsertRestrictionsList(sql, transaction, body.Summary.Restrictions, RESTRICTIONS_TABLE_NAME, RESTRICTIONS_ID_COLUMN_NAME, body.Summary.Id);
+
+                        const string LANGUAGES_TABLE_NAME = "HostSummaryToLanguages";
+                        const string LANGUAGES_ID_COLUMN_NAME = "HostSummaryId";
+                        SqlShared.InsertLanguageList(sql, transaction, body.Summary.Languages, LANGUAGES_TABLE_NAME, LANGUAGES_ID_COLUMN_NAME, body.Summary.Id);
+                    }
+                    catch (Exception exc)
+                    {
+                        transaction.Rollback();
+                        var resp = req.CreateResponse(HttpStatusCode.BadRequest);
+                        resp.WriteStringAsync(exc.ToString());
+                        return resp;
+                    }
+                    transaction.Commit();
+                }
+                
+                sql.Close();
+            }
+            // Spec Defines: HTTP 201
+            response.StatusCode = HttpStatusCode.Created;
+            return response;            // Spec Defines: HTTP 201
+            */
             throw new NotImplementedException();
         }
 
@@ -62,10 +186,188 @@ namespace SiteOfRefuge.API
             logger.LogInformation("HTTP trigger function processed a request.");
 
             // TODO: Handle Documented Responses.
+            /*
+            try
+            { 
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+
+                    JObject json = new JObject();
+                    Guid? contactId = null;
+                    Guid? summaryId = null;
+
+                    using(SqlCommand cmd = new SqlCommand($@"
+                        select 
+                            h.id as Id,
+                            hs.id as HostSummaryId,
+                            hs.Region as HostSummaryRegion,
+                            hs.AllowedPeople as HostSummaryPeople,
+                            hs.Message as HostSummaryMessage,
+                            hs.Shelter as HostSummaryShelter,
+                            hs.Availability as HostSummaryAvailabilityId,
+                            a.DateAvailable as AvailabilityDateAvailable,
+                            a.Active as AvailabilityActive,
+                            alos.value as AvailabilityLengthOfStayValue,
+                            c.Id as RefugeeContactId,
+                            c.Name as RefugeeContactName
+                        from host h
+                            join hostsummary hs 
+                                on h.summary = hs.id
+                            join availability a
+                                on hs.availability = a.id
+                            left outer join AvailabilityLengthOfStay alos
+                                on a.LengthOfStay = alos.Id
+                            join contact c 
+                                on h.contact = c.id
+                        where h.Id = {PARAM_HOST_ID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOST_ID].Value = id;
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            if(!sdr.Read())
+                            {
+                                var resp2 = req.CreateResponse(HttpStatusCode.BadRequest);
+                                resp2.WriteStringAsync("Error: no refugee with ID '" + id.ToString() + "'");
+                                return resp2;
+                            }
+                            json["id"] = sdr.GetGuid(0).ToString();
+
+                            //summary portion
+                            JObject summary = new JObject();
+                            summaryId = sdr.GetGuid(1);
+                            summary["id"] = summaryId.ToString();
+                            summary["region"] = sdr.GetString(2);
+                            summary["allowed_people"] = sdr.GetInt32(3);
+                            summary["message"] = sdr.GetString(4);
+                            summary["shelter"] = sdr.GetString(5);
+                            json["summary"] = summary;
+                            //restrictions
+                            //languages
+
+                            JObject availability = new JObject();
+                            availability["id"] = sdr.GetGuid(6);
+                            try
+                            {
+                                availability["date_available"] = sdr.GetDateTimeOffset(7);
+                            } catch {
+                                availability["date_available"] = "";
+                            }
+                            availability["active"] = sdr.GetBoolean(8);
+                            try
+                            {
+                                availability["length_of_stay"] = sdr.GetString(9);
+                            } catch {
+                                availability["length_of_stay"] = "";
+                            }
+                            json["availability"] = availability;
+
+                            //contact portion
+                            JObject contact = new JObject();
+                            contactId = sdr.GetGuid(10);
+                            contact["id"] = contactId.ToString();
+                            contact["name"] = sdr.GetString(11);
+                            json["contact"] = contact;
+                        }
+                    }
+
+                    const string PARAM_CONTACTTOMETHODS_CONTACTID = "@ContactId";
+                    using(SqlCommand cmd = new SqlCommand($@"select cm.Id,
+                        cmm.description,
+                        cm.Value,
+                        cm.verified
+                        from contacttomethods ctm
+                        join contactmode cm on ctm.contactmodeid = cm.id
+                        join contactmodemethod cmm on cm.method = cmm.id
+                        where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = contactId;
+                        List<JObject> contactMethods = new List<JObject>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            if(!sdr.Read())
+                            {
+                                var resp2 = req.CreateResponse(HttpStatusCode.BadRequest);
+                                resp2.WriteStringAsync("Error: no contact with ID '" + contactId.ToString() + "'");
+                                return resp2;
+                            }
+                            JObject contactMethod = new JObject();
+                            contactMethod["id"] = sdr.GetGuid(0).ToString();
+                            contactMethod["method"] = sdr.GetString(1);
+                            contactMethod["value"] = sdr.GetString(2);
+                            bool verified = sdr.GetBoolean(3);
+                            contactMethod["verified"] = verified;
+                            contactMethods.Add(contactMethod);
+                        }
+                        json["contact"]["methods"] = JToken.FromObject(contactMethods);
+                    }
+
+                    using(SqlCommand cmd = new SqlCommand($@"select sl.description
+                        from hostsummarytolanguages hstl
+                        join spokenlanguages sl on hstl.spokenlanguagesid = sl.id
+                        where hstl.hostsummaryid = {PARAM_HOSTSUMMARYTOLANGUAGES_SUMMARYID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARYTOLANGUAGES_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOSTSUMMARYTOLANGUAGES_SUMMARYID].Value = summaryId;
+                        List<string> languages = new List<string>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            int found = 0;
+                            while(sdr.Read())
+                            {
+                                found++;
+                                languages.Add(sdr.GetString(0));
+                            }
+                            //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
+                            //if(found < 1)
+                            //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                        }
+                        json["summary"]["languages"] = JToken.FromObject(languages);
+                    }
+
+                    using(SqlCommand cmd = new SqlCommand($@"select r.description
+                        from hostsummarytorestrictions hstr
+                        join Restrictions r on hstr.restrictionsid = r.id
+                        where hstr.hostsummaryid = {PARAM_HOSTSUMMARYTORESTRICTIONS_SUMMARYID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARYTORESTRICTIONS_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOSTSUMMARYTORESTRICTIONS_SUMMARYID].Value = summaryId;
+                        List<string> restrictions = new List<string>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            int found = 0;
+                            while(sdr.Read())
+                            {
+                                found++;
+                                restrictions.Add(sdr.GetString(0));
+                            }
+                            //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
+                            //if(found < 1)
+                            //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                        }
+                        json["summary"]["restrictions"] = JToken.FromObject(restrictions);
+                    }
+
+                    sql.Close();
+
+                    var resp = req.CreateResponse(HttpStatusCode.OK);
+                    resp.WriteAsJsonAsync(json.ToString());
+                    return resp;
+                }
+            }
+            catch(Exception exc)
+            {
+                //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                var resp = req.CreateResponse(HttpStatusCode.NotFound);
+                resp.WriteStringAsync(exc.ToString());
+                return resp;
+            }
+                */
+                throw new NotImplementedException();
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404
-
-            throw new NotImplementedException();
         }
 
         /// <summary> Updates a new host in the system. </summary>
@@ -94,13 +396,41 @@ namespace SiteOfRefuge.API
         [Function(nameof(DeleteHost))]
         public HttpResponseData DeleteHost([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "hosts/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {
+            /*
             var logger = context.GetLogger(nameof(DeleteHost));            
             logger.LogInformation( $"HTTP trigger function processed a request for {id.ToString()}");
 
             // TODO: Handle Documented Responses.
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            // TODO: Handle Documented Responses.
+            try
+            {
+                logger.LogInformation("Guid: " + id.ToString());
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+
+                    using(SqlCommand cmd = new SqlCommand($@"exec DeleteRefugee @refugeeid = {PARAM_HOST_ID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOST_ID].Value = id;
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch(Exception exc)
+            {
+                //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                logger.LogInformation("Guid: " + id.ToString() + "\r\n" + exc.ToString());
+                response.StatusCode = HttpStatusCode.NotFound;
+                return response;
+            }
             // Spec Defines: HTTP 202
             // Spec Defines: HTTP 404
-
+            response.StatusCode = HttpStatusCode.Accepted;
+            return response; 
+            */
             throw new NotImplementedException();
         }
     }

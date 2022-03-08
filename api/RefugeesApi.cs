@@ -15,8 +15,11 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using SiteOfRefuge.API.Middleware;
 using SiteOfRefuge.API.Models;
+using Microsoft.SqlServer.Management.Smo;
+using Microsoft.SqlServer.Management.Common;
 
 namespace SiteOfRefuge.API
 {
@@ -179,11 +182,180 @@ namespace SiteOfRefuge.API
             var logger = context.GetLogger(nameof(GetRefugee));
             logger.LogInformation("HTTP trigger function processed a request.");
 
-            // TODO: Handle Documented Responses.
+            //TODO (security): make sure user requesting access has match...
+            /*
+                            var principalFeature = context.Features.Get<JwtPrincipalFeature>();
+                            var claimsIdentity = (ClaimsIdentity)principalFeature.Principal.Identity;
+                            
+                            // TODO: We can use the authorization framework to create custom validation, like roles or
+                            //       to verify that the subject (sub) claim matches the route path for the Guid.
+                            var targetMethod = context.GetTargetFunctionMethod();
+                            var methodAttributes = targetMethod.GetCustomAttributes<FunctionAuthorizeAttribute>();
+
+                            // If there is only the Function[] attribute, no more processing is needed
+                            if( methodAttributes.Count() > 1)
+                            {
+                                var flag = methodAttributes.FirstOrDefault().Flag;
+
+                                var subject = claimsIdentity.Claims.FirstOrDefault( c => c.Type == "sub" ).Value;                        
+            subject is a string not guid but can compare to make sure getting for id
+                                        if( !string.Equals( subject, id, StringComparison.OrdinalIgnoreCase) )
+            */
+
+            try
+            {
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+
+                    JObject json = new JObject();
+                    Guid? contactId = null;
+                    Guid? summaryId = null;
+
+                    using(SqlCommand cmd = new SqlCommand($@"select r.id as Id,
+                        rs.id as RefugeeSummaryId,
+                        rs.Region as RefugeeSummaryRegion,
+                        rs.People as RefugeeSummaryPeople,
+                        rs.Message as RefugeeSummaryMessage,
+                        rs.PossessionDate as RefugeePossessionDate,
+                        c.Id as RefugeeContactId,
+                        c.Name as RefugeeContactName
+                        from refugee r
+                        join refugeesummary rs on r.summary = rs.id
+                        join contact c on r.contact = c.id
+                        where r.Id = {PARAM_REFUGEE_ID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = id;
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            if(!sdr.Read())
+                            {
+                                var resp2 = req.CreateResponse(HttpStatusCode.BadRequest);
+                                resp2.WriteStringAsync("Error: no refugee with ID '" + id.ToString() + "'");
+                                return resp2;
+                                //return new BadRequestObjectResult("Error: no refugee with ID '" + id.ToString() + "'");
+                            }
+                            json["id"] = sdr.GetGuid(0).ToString();
+
+                            //summary portion
+                            JObject summary = new JObject();
+                            summaryId = sdr.GetGuid(1);
+                            summary["id"] = summaryId.ToString();
+                            summary["region"] = sdr.GetString(2);
+                            summary["people"] = sdr.GetInt32(3);
+                            summary["message"] = sdr.GetString(4);
+                            //restrictions
+                            //languages
+                            summary["possession_date"] = sdr.GetDateTimeOffset(5);
+                            json["summary"] = summary;
+
+                            //contact portion
+                            JObject contact = new JObject();
+                            contactId = sdr.GetGuid(6);
+                            contact["id"] = contactId.ToString();
+                            contact["name"] = sdr.GetString(7);
+                            json["contact"] = contact;
+
+                        }
+                    }
+
+                    const string PARAM_CONTACTTOMETHODS_CONTACTID = "@ContactId";
+                    using(SqlCommand cmd = new SqlCommand($@"select cm.Id,
+                        cmm.description,
+                        cm.Value,
+                        cm.verified
+                        from contacttomethods ctm
+                        join contactmode cm on ctm.contactmodeid = cm.id
+                        join contactmodemethod cmm on cm.method = cmm.id
+                        where ctm.contactid = {PARAM_CONTACTTOMETHODS_CONTACTID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_CONTACTTOMETHODS_CONTACTID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_CONTACTTOMETHODS_CONTACTID].Value = contactId;
+                        List<JObject> contactMethods = new List<JObject>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            if(!sdr.Read())
+                            {
+                                var resp2 = req.CreateResponse(HttpStatusCode.BadRequest);
+                                resp2.WriteStringAsync("Error: no contact with ID '" + contactId.ToString() + "'");
+                                return resp2;
+                                //return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                            }
+                            JObject contactMethod = new JObject();
+                            contactMethod["id"] = sdr.GetGuid(0).ToString();
+                            contactMethod["method"] = sdr.GetString(1);
+                            contactMethod["value"] = sdr.GetString(2);
+                            bool verified = sdr.GetBoolean(3);
+                            contactMethod["verified"] = verified;
+                            contactMethods.Add(contactMethod);
+                        }
+                        json["contact"]["methods"] = JToken.FromObject(contactMethods);
+                    }
+
+                    using(SqlCommand cmd = new SqlCommand($@"select sl.description
+                        from refugeesummarytolanguages rstl
+                        join spokenlanguages sl on rstl.spokenlanguagesid = sl.id
+                        where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID].Value = summaryId;
+                        List<string> languages = new List<string>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            int found = 0;
+                            while(sdr.Read())
+                            {
+                                found++;
+                                languages.Add(sdr.GetString(0));
+                            }
+                            //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
+                            //if(found < 1)
+                            //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                        }
+                        json["summary"]["languages"] = JToken.FromObject(languages);
+                    }
+
+                    using(SqlCommand cmd = new SqlCommand($@"select r.description
+                        from refugeesummarytorestrictions rstr
+                        join Restrictions r on rstr.restrictionsid = r.id
+                        where rstr.refugeesummaryid = {PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID].Value = summaryId;
+                        List<string> restrictions = new List<string>();
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            int found = 0;
+                            while(sdr.Read())
+                            {
+                                found++;
+                                restrictions.Add(sdr.GetString(0));
+                            }
+                            //QUESTION: it's okay not to restrict to a particular language, right? or need 1+?
+                            //if(found < 1)
+                            //    return new BadRequestObjectResult("Error: no contact with ID '" + contactId.ToString() + "'");
+                        }
+                        json["summary"]["restrictions"] = JToken.FromObject(restrictions);
+                    }
+
+                    sql.Close();
+
+                    var resp = req.CreateResponse(HttpStatusCode.OK);
+                    resp.WriteAsJsonAsync(json.ToString());
+                    return resp;
+                }
+            }
+            catch(Exception exc)
+            {
+                //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                //return new StatusCodeResult(404);
+                var badResponse = req.CreateResponse(HttpStatusCode.NotFound);
+                badResponse.WriteStringAsync(exc.ToString());
+                return badResponse;
+            }
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404
-
-            throw new NotImplementedException();
         }
 
         /// <summary> Updates a refugee in the system. </summary>
@@ -201,7 +373,6 @@ namespace SiteOfRefuge.API
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 204
             // Spec Defines: HTTP 404
-
             throw new NotImplementedException();
         }
 
@@ -215,11 +386,36 @@ namespace SiteOfRefuge.API
             var logger = context.GetLogger(nameof(DeleteRefugee));
             logger.LogInformation("HTTP trigger function processed a request.");
 
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
             // TODO: Handle Documented Responses.
+            try
+            {
+                logger.LogInformation("Guid: " + id.ToString());
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+
+                    using(SqlCommand cmd = new SqlCommand($@"exec DeleteRefugee @refugeeid = {PARAM_REFUGEE_ID}", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = id;
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch(Exception exc)
+            {
+                //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
+                logger.LogInformation("Guid: " + id.ToString() + "\r\n" + exc.ToString());
+                response.StatusCode = HttpStatusCode.NotFound;
+                return response;
+            }
             // Spec Defines: HTTP 202
             // Spec Defines: HTTP 404
 
-            throw new NotImplementedException();
+            response.StatusCode = HttpStatusCode.Accepted;
+            return response;
         }
     }
 }

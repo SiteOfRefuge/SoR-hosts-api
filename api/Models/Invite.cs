@@ -39,14 +39,14 @@ namespace SiteOfRefuge.API.Models
         }
 
         /// <summary> Unique identifier in UUID/GUID format. </summary>
-        public Guid? Id { get; }
+        public Guid? Id { get; set; }
         /// <summary> Unique identifier in UUID/GUID format. </summary>
-        public Guid RefugeeId { get; }
+        public Guid RefugeeId { get; set; }
         /// <summary> Unique identifier in UUID/GUID format. </summary>
-        public Guid HostId { get; }
+        public Guid HostId { get; set; }
         /// <summary> Date when inivitation was sent. </summary>
-        public DateTimeOffset? DateRequested { get; }
+        public DateTimeOffset? DateRequested { get; set; }
         /// <summary> Date when inivitation was accepted. </summary>
-        public DateTimeOffset? DateAccepted { get; }
+        public DateTimeOffset? DateAccepted { get; set; }
     }
 }
