@@ -66,11 +66,9 @@ namespace SiteOfRefuge.API
                 refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
             }
 
-
-            // TODO: Handle Documented Responses.
-            // Spec Defines: HTTP 201
-
-            throw new NotImplementedException();
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(refugee);
+            return response;
         }
 
         /// <summary> Get information about a specific refugee. </summary>

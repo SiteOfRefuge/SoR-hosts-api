@@ -13,6 +13,8 @@ namespace SiteOfRefuge.API.Models
     /// <summary> Contact information of a person. </summary>
     public partial class Contact
     {
+        public Contact() {}
+        
         /// <summary> Initializes a new instance of Contact. </summary>
         /// <param name="name"> The person&apos;s full name. </param>
         /// <param name="methods"> The way(s) in which this person can be contacted. </param>
