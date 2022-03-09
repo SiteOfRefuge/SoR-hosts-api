@@ -187,13 +187,7 @@ namespace SiteOfRefuge.API
             var logger = context.GetLogger(nameof(GetRefugee));
             logger.LogInformation("HTTP trigger function processed a request.");
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
-
-            if(!Shared.ValidateUserIdMatchesToken(context, id))
-            {
-                response.StatusCode = HttpStatusCode.Forbidden;
-                return response;
-            }
+            var response = req.CreateResponse(HttpStatusCode.OK);            
 
             try
             {
