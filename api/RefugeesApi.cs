@@ -18,8 +18,6 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using SiteOfRefuge.API.Middleware;
 using SiteOfRefuge.API.Models;
-using Microsoft.SqlServer.Management.Smo;
-using Microsoft.SqlServer.Management.Common;
 
 namespace SiteOfRefuge.API
 {
@@ -89,7 +87,7 @@ namespace SiteOfRefuge.API
                     var reader = new StreamReader(req.Body);
                     var respBody = await reader.ReadToEndAsync();
                     refugee = Newtonsoft.Json.JsonConvert.DeserializeObject<Refugee>(respBody);
-
+                    
                     // refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
                 }
                 catch(Exception exc)
@@ -182,25 +180,13 @@ namespace SiteOfRefuge.API
             var logger = context.GetLogger(nameof(GetRefugee));
             logger.LogInformation("HTTP trigger function processed a request.");
 
-            //TODO (security): make sure user requesting access has match...
-            /*
-                            var principalFeature = context.Features.Get<JwtPrincipalFeature>();
-                            var claimsIdentity = (ClaimsIdentity)principalFeature.Principal.Identity;
-                            
-                            // TODO: We can use the authorization framework to create custom validation, like roles or
-                            //       to verify that the subject (sub) claim matches the route path for the Guid.
-                            var targetMethod = context.GetTargetFunctionMethod();
-                            var methodAttributes = targetMethod.GetCustomAttributes<FunctionAuthorizeAttribute>();
+            var response = req.CreateResponse(HttpStatusCode.OK);
 
-                            // If there is only the Function[] attribute, no more processing is needed
-                            if( methodAttributes.Count() > 1)
-                            {
-                                var flag = methodAttributes.FirstOrDefault().Flag;
-
-                                var subject = claimsIdentity.Claims.FirstOrDefault( c => c.Type == "sub" ).Value;                        
-            subject is a string not guid but can compare to make sure getting for id
-                                        if( !string.Equals( subject, id, StringComparison.OrdinalIgnoreCase) )
-            */
+            if(!Shared.ValidateUserIdMatchesToken(context, id))
+            {
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
+            }
 
             try
             {
@@ -341,18 +327,18 @@ namespace SiteOfRefuge.API
 
                     sql.Close();
 
-                    var resp = req.CreateResponse(HttpStatusCode.OK);
-                    resp.WriteAsJsonAsync(json.ToString());
-                    return resp;
+                    response.StatusCode = HttpStatusCode.OK;
+                    response.WriteAsJsonAsync(json.ToString());
+                    return response;
                 }
             }
             catch(Exception exc)
             {
                 //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
                 //return new StatusCodeResult(404);
-                var badResponse = req.CreateResponse(HttpStatusCode.NotFound);
-                badResponse.WriteStringAsync(exc.ToString());
-                return badResponse;
+                response.StatusCode = HttpStatusCode.NotFound;
+                logger.LogInformation(exc.ToString());
+                return response;
             }
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404

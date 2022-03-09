@@ -19,10 +19,6 @@
 		<PackageReference Include="System.Data.SqlClient" Version="4.8.3"/>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.1"/>
 		<PackageReference Include="Microsoft.NETCore.Targets" Version="5.0.0"/>
-		<PackageReference Include="Microsoft.SqlServer.SmoExtended.dll" Version="1.0.1"/>
-		<PackageReference Include="Microsoft.SqlServer.Smo.dll" Version="1.0.1"/>
-		<PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" Version="161.47008.0"/>
-		<PackageReference Include="Microsoft.SqlServer.ConnectionInfo.dll" Version="1.0.1"/>
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="host.json">

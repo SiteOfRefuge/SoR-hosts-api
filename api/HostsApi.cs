@@ -160,9 +160,9 @@ namespace SiteOfRefuge.API
                     catch (Exception exc)
                     {
                         transaction.Rollback();
-                        var resp = req.CreateResponse(HttpStatusCode.BadRequest);
-                        resp.WriteStringAsync(exc.ToString());
-                        return resp;
+                        response.StatusCode = HttpStatusCode.BadRequest;
+                        logger.LogInformation(exc.ToString());
+                        return response;
                     }
                     transaction.Commit();
                 }
@@ -185,6 +185,14 @@ namespace SiteOfRefuge.API
         {
             var logger = context.GetLogger(nameof(GetHost));
             logger.LogInformation("HTTP trigger function processed a request.");
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            if(!Shared.ValidateUserIdMatchesToken(context, id))
+            {
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
+            }
 
             // TODO: Handle Documented Responses.
             try
@@ -352,17 +360,17 @@ namespace SiteOfRefuge.API
 
                     sql.Close();
 
-                    var resp = req.CreateResponse(HttpStatusCode.OK);
-                    resp.WriteAsJsonAsync(json.ToString());
-                    return resp;
+                    response.StatusCode = HttpStatusCode.OK;
+                    response.WriteAsJsonAsync(json.ToString());
+                    return response;
                 }
             }
             catch(Exception exc)
             {
                 //return new BadRequestObjectResult(exc.ToString()); //TODO: DEBUG, not good for real site
-                var resp = req.CreateResponse(HttpStatusCode.NotFound);
-                resp.WriteStringAsync(exc.ToString());
-                return resp;
+                response.StatusCode = HttpStatusCode.NotFound;
+                logger.LogInformation(exc.ToString());
+                return response;
             }
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404

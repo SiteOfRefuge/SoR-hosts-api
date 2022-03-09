@@ -25,19 +25,25 @@ namespace SiteOfRefuge.API
             _value = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        private const string PetsValue = "Pets";
         private const string KidsValue = "Kids";
         private const string AdultMenValue = "Adult men";
         private const string AdultWomenValue = "Adult women";
+        private const string DogsValue = "Dogs";
+        private const string CatsValue = "Cats";
+        private const string OtherPetsValue = "Other pets";
 
-        /// <summary> Pets. </summary>
-        public static Restrictions Pets { get; } = new Restrictions(PetsValue);
         /// <summary> Kids. </summary>
         public static Restrictions Kids { get; } = new Restrictions(KidsValue);
         /// <summary> Adult men. </summary>
         public static Restrictions AdultMen { get; } = new Restrictions(AdultMenValue);
         /// <summary> Adult women. </summary>
         public static Restrictions AdultWomen { get; } = new Restrictions(AdultWomenValue);
+ 
+        public static Restrictions Dogs { get; } = new Restrictions(DogsValue);
+        public static Restrictions Cats { get; } = new Restrictions(CatsValue);
+        public static Restrictions OtherPets { get; } = new Restrictions(OtherPetsValue);
+ 
+
         /// <summary> Determines if two <see cref="Restrictions"/> values are the same. </summary>
         public static bool operator ==(Restrictions left, Restrictions right) => left.Equals(right);
         /// <summary> Determines if two <see cref="Restrictions"/> values are not the same. </summary>
