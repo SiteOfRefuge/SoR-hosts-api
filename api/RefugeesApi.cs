@@ -86,9 +86,7 @@ namespace SiteOfRefuge.API
                 {
                     var reader = new StreamReader(req.Body);
                     var respBody = await reader.ReadToEndAsync();
-                    refugee = Newtonsoft.Json.JsonConvert.DeserializeObject<Refugee>(respBody);
-                    
-                    // refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
+                    refugee = Newtonsoft.Json.JsonConvert.DeserializeObject<Refugee>(respBody);                    
                 }
                 catch(Exception exc)
                 {
@@ -96,6 +94,13 @@ namespace SiteOfRefuge.API
                     response.StatusCode = HttpStatusCode.BadRequest;
                     return response;
                 }
+            }
+
+            if(!Shared.ValidateUserIdMatchesToken(context, refugee.Id))
+            {
+                logger.LogInformation($"{context.InvocationId.ToString()} - Expected refugee Id does not match subject claim when creating a new refugee.");                    
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
             }
 
             using(SqlConnection sql = SqlShared.GetSqlConnection())
@@ -180,13 +185,7 @@ namespace SiteOfRefuge.API
             var logger = context.GetLogger(nameof(GetRefugee));
             logger.LogInformation("HTTP trigger function processed a request.");
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
-
-            if(!Shared.ValidateUserIdMatchesToken(context, id))
-            {
-                response.StatusCode = HttpStatusCode.Forbidden;
-                return response;
-            }
+            var response = req.CreateResponse(HttpStatusCode.OK);            
 
             try
             {
