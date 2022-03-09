@@ -1,0 +1,734 @@
+[
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e30",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e30",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "I speak several languages",
+          "restrictions": [
+            "Kids",
+            "Adult women",
+          ],
+          "languages": [
+            "English",
+            "Ukrainian",
+            "Russian",
+        ],
+          "shelter": "House with several rooms",
+        "availability": {
+            "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e30",
+            "date_available": "2022-03-07",
+            "active": true,
+            "length_of_stay": "A few days, up to a week"
+            }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e30",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e50",
+              "method": "Phone",
+              "value": "123-456-7890",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e60",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e70",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+              ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e31",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e31",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "I'll find a way to help anyone",
+          "restrictions": [
+            "Dogs",
+            "Cats",
+            "Kids",
+            "Other pets",
+            "Adult men",
+            "Adult women",
+          ],
+          "languages": [
+            "English",
+            "Ukrainian",
+            "Polish",
+            "Russian",
+            "Slovak",
+            "Hungarian",
+            "Romanian",
+            "Other"
+          ],
+          "shelter": "House with several rooms",
+        "availability": {
+            "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e31",
+            "date_available": "2022-03-07",
+            "active": true,
+            "length_of_stay": "A few days, up to a week"
+            }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e31",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e51",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e61",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e71",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e32",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e32",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "Only people just like me",
+          "restrictions": [
+            "Adult women",
+          ],
+          "languages": [
+            "Polish",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e32",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e32",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e52",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e62",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e72",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e33",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e33",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "I'm a single mom with an infant son. Please help.",
+          "restrictions": [
+            "Dogs",
+            "Cats",
+            "Kids",
+            "Other pets",
+            "Adult men",
+            "Adult women",
+          ],
+          "languages": [
+            "English",
+            "Ukrainian",
+            "Polish",
+            "Russian",
+            "Slovak",
+            "Hungarian",
+            "Romanian",
+            "Other"
+          ],
+          "shelter": "House with several rooms",
+        "availability": {
+            "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e33",
+            "date_available": "2022-03-07",
+            "active": true,
+            "length_of_stay": "A few days, up to a week"
+            }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e33",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e53",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e63",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e73",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e34",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e34",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "We have heat and air conditioning",
+          "restrictions": [
+            "Adult men",
+            "Adult women",
+          ],
+          "languages": [
+            "Ukrainian",
+            "Polish",
+          ],
+          "shelter": "House with several rooms",
+        "availability": {
+            "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e34",
+            "date_available": "2022-03-07",
+            "active": true,
+            "length_of_stay": "A few days, up to a week"
+            }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e34",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e54",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e35",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e35",
+          "region": "PL-26",
+          "allowed_people": 5,
+          "message": "I'm a single mom with an infant son. Please help.",
+          "restrictions": [
+            "Dogs",
+            "Cats",
+            "Kids",
+            "Other pets",
+            "Adult women",
+          ],
+          "languages": [
+            "Polish",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e35",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e35",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e55",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e65",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e36",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e36",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "Nice place, room in house with other people.",
+          "restrictions": [
+            "Adult men",
+          ],
+          "languages": [
+            "English",
+            "Ukrainian",
+            "Polish",
+            "Russian",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e36",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e36",
+          "name": "Jane Smith",
+          "methods": [
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e56",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e66",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e37",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e37",
+          "region": "PL-26",
+          "allowed_people": 7,
+          "message": "I'm a linguist so bring your favorite language!",
+          "restrictions": [
+            "Kids",
+            "Adult women",
+          ],
+          "languages": [
+            "English",
+            "Ukrainian",
+            "Polish",
+            "Russian",
+            "Slovak",
+            "Hungarian",
+            "Romanian",
+            "Other"
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e37",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e37",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e57",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e67",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e38",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e38",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "Ladies only.",
+          "restrictions": [
+            "Adult women",
+          ],
+          "languages": [
+            "Ukrainian",
+            "Polish",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e38",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e38",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e58",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e68",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e78",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e39",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e39",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "I'm a single mom with an infant son. Please help.",
+          "restrictions": [
+            "Dogs",
+            "Cats",
+            "Kids",
+            "Other pets",
+            "Adult women",
+          ],
+          "languages": [
+            "Ukrainian",
+            "Hungarian",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e39",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e39",
+          "name": "Jane Smith",
+          "methods": [
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e59",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e69",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3a",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3a",
+          "region": "PL-26",
+          "allowed_people": 4,
+          "message": "I'm a single mom with an infant son. Please help.",
+          "restrictions": [
+            "Adult women",
+          ],
+          "languages": [
+            "Ukrainian",
+            "Russian",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3a",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3a",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e5a",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e6a",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3b",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3b",
+          "region": "PL-26",
+          "allowed_people": 4,
+          "message": "Also speak Chinese.",
+          "restrictions": [
+            "Kids",
+            "Adult women",
+          ],
+          "languages": [
+            "Ukrainian",
+            "Other"
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3b",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3b",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e5b",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e6b",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3c",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3c",
+          "region": "PL-26",
+          "allowed_people": 3,
+          "message": "Nice place not suitable for kids.",
+          "restrictions": [
+            "Adult men",
+            "Adult women",
+          ],
+          "languages": [
+            "Ukrainian",
+            "Polish",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3c",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3c",
+          "name": "Jane Smith",
+          "methods": [
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e5c",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e6c",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3d",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3d",
+          "region": "PL-26",
+          "allowed_people": 1,
+          "message": "Happy to help! stay a while.",
+          "restrictions": [
+            "Adult women",
+          ],
+          "languages": [
+            "Ukrainian",
+            "Polish",
+            "Russian",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3d",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3d",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e5d",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e6d",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3e",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3e",
+          "region": "PL-26",
+          "allowed_people": 3,
+          "message": "Happy to help!",
+          "restrictions": [
+            "Kids",
+            "Adult women",
+          ],
+          "languages": [
+            "Polish",
+            "Russian",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3e",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3e",
+          "name": "Jane Smith",
+          "methods": [
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e5e",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e6e",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    },
+    {
+        "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3f",
+        "summary": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3f",
+          "region": "PL-26",
+          "allowed_people": 2,
+          "message": "I'd like to help.",
+          "restrictions": [
+            "Kids",
+            "Adult women",
+          ],
+          "languages": [
+            "English",
+            "Ukrainian",
+            "Polish",
+          ],
+          "shelter": "House with several rooms",
+            "availability": {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3f",
+                "date_available": "2022-03-07",
+                "active": true,
+                "length_of_stay": "A few days, up to a week"
+                }
+        },
+        "contact": {
+          "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e3f",
+          "name": "Jane Smith",
+          "methods": [
+            {
+              "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e5f",
+              "method": "Phone",
+              "value": "string",
+              "verified": false
+            },
+            {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e6f",
+                "method": "Email",
+                "value": "blah@blah.com",
+                "verified": false
+              },
+              {
+                "id": "30222d8b-d3d1-4f62-9a2c-8161c2252e7f",
+                "method": "SMS",
+                "value": "123-456-7890",
+                "verified": false
+              }
+          ]
+        }
+    }    
+]

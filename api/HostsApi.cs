@@ -87,6 +87,8 @@ namespace SiteOfRefuge.API
                     var respBody = await reader.ReadToEndAsync();
                     //j = JObject.Parse(respBody);
                     body = Newtonsoft.Json.JsonConvert.DeserializeObject<Host>(respBody);
+                    body.Summary.Availability.DateAvailable = DateTime.Parse(JObject.Parse(respBody)["summary"]["availability"]["date_available"].ToString());
+                    body.Summary.Availability.LengthOfStay = new AvailabilityLengthOfStay(JObject.Parse(respBody)["summary"]["availability"]["length_of_stay"].ToString());
                 }
                 catch(Exception exc)
                 {
@@ -113,7 +115,7 @@ namespace SiteOfRefuge.API
                         {
                             cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ID, System.Data.SqlDbType.UniqueIdentifier));
                             cmd.Parameters[PARAM_AVAILABILITY_ID].Value = body.Summary.Availability.Id;
-                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_DATE_AVAILABLE, System.Data.SqlDbType.DateTimeOffset));
+                            cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_DATE_AVAILABLE, System.Data.SqlDbType.SmallDateTime));
                             cmd.Parameters[PARAM_AVAILABILITY_DATE_AVAILABLE].Value = body.Summary.Availability.DateAvailable is null ? DBNull.Value : body.Summary.Availability.DateAvailable;
                             cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ACTIVE, System.Data.SqlDbType.Bit));
                             cmd.Parameters[PARAM_AVAILABILITY_ACTIVE].Value = (body.Summary.Availability.Active.HasValue && body.Summary.Availability.Active.Value) ? 1 : 0;
@@ -258,7 +260,7 @@ namespace SiteOfRefuge.API
                             availability["id"] = sdr.GetGuid(6);
                             try
                             {
-                                availability["date_available"] = sdr.GetDateTimeOffset(7);
+                                availability["date_available"] = sdr.GetDateTime(7);
                             } catch {
                                 availability["date_available"] = "";
                             }

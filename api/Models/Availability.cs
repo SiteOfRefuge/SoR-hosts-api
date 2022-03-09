@@ -6,7 +6,9 @@
 #nullable disable
 
 using System;
+using System.Text.Json.Serialization;
 using SiteOfRefuge.API;
+using static SiteOfRefuge.API.Shared;
 
 namespace SiteOfRefuge.API.Models
 {
@@ -23,7 +25,7 @@ namespace SiteOfRefuge.API.Models
         /// <param name="dateAvailable"> Date when shelter will be available. </param>
         /// <param name="active"> Is this shelter currently available for matching with refugees?. </param>
         /// <param name="lengthOfStay"> How long a refugee can stay. </param>
-        internal Availability(Guid? id, DateTimeOffset? dateAvailable, bool? active, AvailabilityLengthOfStay? lengthOfStay)
+        internal Availability(Guid? id, DateTime? dateAvailable, bool? active, AvailabilityLengthOfStay? lengthOfStay)
         {
             Id = id;
             DateAvailable = dateAvailable;
@@ -34,7 +36,8 @@ namespace SiteOfRefuge.API.Models
         /// <summary> Unique identifier in UUID/GUID format. </summary>
         public Guid? Id { get; set; }
         /// <summary> Date when shelter will be available. </summary>
-        public DateTimeOffset? DateAvailable { get; set; }
+        [JsonConverter(typeof(CustomDateTimeConverter))]
+        public DateTime? DateAvailable { get; set; }
         /// <summary> Is this shelter currently available for matching with refugees?. </summary>
         public bool? Active { get; set; }
         /// <summary> How long a refugee can stay. </summary>

@@ -639,10 +639,12 @@ components:
     Restrictions:
       type: string
       enum:  
-        - Pets 
         - Kids
         - Adult men
         - Adult women
+        - Cats
+        - Dogs
+        - Other pets
       
     Shelter:
       type: string

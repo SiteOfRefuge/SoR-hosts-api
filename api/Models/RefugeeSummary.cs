@@ -7,7 +7,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using SiteOfRefuge.API;
+using static SiteOfRefuge.API.Shared;
 
 namespace SiteOfRefuge.API.Models
 {
@@ -22,7 +24,7 @@ namespace SiteOfRefuge.API.Models
         /// <param name="people"> . </param>
         /// <param name="possessionDate"> Date when shelter is needed by. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="region"/> is null. </exception>
-        public RefugeeSummary(Guid id, string region, int people, DateTimeOffset possessionDate)
+        public RefugeeSummary(Guid id, string region, int people, DateTime possessionDate)
         {
             if (region == null)
             {
@@ -45,7 +47,7 @@ namespace SiteOfRefuge.API.Models
         /// <param name="restrictions"> Any restrictions that might impact placement. </param>
         /// <param name="languages"> . </param>
         /// <param name="possessionDate"> Date when shelter is needed by. </param>
-        internal RefugeeSummary(Guid id, string region, int people, string message, IList<Restrictions> restrictions, IList<SpokenLanguages> languages, DateTimeOffset possessionDate)
+        internal RefugeeSummary(Guid id, string region, int people, string message, IList<Restrictions> restrictions, IList<SpokenLanguages> languages, DateTime possessionDate)
         {
             Id = id;
             Region = region;
@@ -67,6 +69,7 @@ namespace SiteOfRefuge.API.Models
         public IList<Restrictions> Restrictions { get; set; }
         public IList<SpokenLanguages> Languages { get; set; }
         /// <summary> Date when shelter is needed by. </summary>
-        public DateTimeOffset PossessionDate { get; set; }
+        [JsonConverter(typeof(CustomDateTimeConverter))]
+        public DateTime PossessionDate { get; set; }
     }
 }

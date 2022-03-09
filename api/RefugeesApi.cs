@@ -57,8 +57,8 @@ namespace SiteOfRefuge.API
             logger.LogInformation("HTTP trigger function processed a request.");
 
             IEnumerable<RefugeeSummary> refugeeList = new List<RefugeeSummary> {
-                new RefugeeSummary( Guid.NewGuid(), "PL-06", 1, new DateTimeOffset(DateTime.UtcNow) ),
-                new RefugeeSummary( Guid.NewGuid(), "PL-16", 4, new DateTimeOffset(DateTime.UtcNow) )
+                new RefugeeSummary( Guid.NewGuid(), "PL-06", 1, DateTime.UtcNow ),
+                new RefugeeSummary( Guid.NewGuid(), "PL-16", 4, DateTime.UtcNow )
             };
 
             var okResponse = req.CreateResponse(HttpStatusCode.OK);
@@ -87,7 +87,7 @@ namespace SiteOfRefuge.API
                     var reader = new StreamReader(req.Body);
                     var respBody = await reader.ReadToEndAsync();
                     refugee = Newtonsoft.Json.JsonConvert.DeserializeObject<Refugee>(respBody);
-                    
+                    refugee.Summary.PossessionDate = DateTime.Parse(JObject.Parse(respBody)["summary"]["possession_date"].ToString());
                     // refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
                 }
                 catch(Exception exc)
@@ -98,6 +98,13 @@ namespace SiteOfRefuge.API
                 }
             }
 
+            if(!Shared.ValidateUserIdMatchesToken(context, refugee.Id))
+            {
+                logger.LogInformation($"{context.InvocationId.ToString()} - Expected refugee Id does not match subject claim when creating a new refugee.");                    
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
+            }
+            
             using(SqlConnection sql = SqlShared.GetSqlConnection())
             {
                 sql.Open();
@@ -135,7 +142,7 @@ namespace SiteOfRefuge.API
                             cmd.Parameters[PARAM_REFUGEESUMMARY_PEOPLE].Value = refugee.Summary.People;
                             cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
                             cmd.Parameters[PARAM_REFUGEESUMMARY_MESSAGE].Value = refugee.Summary.Message;
-                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_POSSESSIONDATE, System.Data.SqlDbType.DateTimeOffset));
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_POSSESSIONDATE, System.Data.SqlDbType.SmallDateTime));
                             cmd.Parameters[PARAM_REFUGEESUMMARY_POSSESSIONDATE].Value = refugee.Summary.PossessionDate;
                             cmd.ExecuteNonQuery();
                         }
@@ -233,7 +240,7 @@ namespace SiteOfRefuge.API
                             summary["message"] = sdr.GetString(4);
                             //restrictions
                             //languages
-                            summary["possession_date"] = sdr.GetDateTimeOffset(5);
+                            summary["possession_date"] = sdr.GetDateTime(5);
                             json["summary"] = summary;
 
                             //contact portion

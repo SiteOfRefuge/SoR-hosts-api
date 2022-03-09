@@ -31,13 +31,13 @@ namespace SiteOfRefuge.API
         private const string Over4MonthsValue = "Over 4 months";
 
         /// <summary> A few days, up to a week. </summary>
-        public static AvailabilityLengthOfStay AFewDaysUpToAWeek { get; } = new AvailabilityLengthOfStay(AFewDaysUpToAWeekValue);
+        public static AvailabilityLengthOfStay AFewDaysUpToAWeek { get; set; } = new AvailabilityLengthOfStay(AFewDaysUpToAWeekValue);
         /// <summary> Up to a month. </summary>
-        public static AvailabilityLengthOfStay UpToAMonth { get; } = new AvailabilityLengthOfStay(UpToAMonthValue);
+        public static AvailabilityLengthOfStay UpToAMonth { get; set; } = new AvailabilityLengthOfStay(UpToAMonthValue);
         /// <summary> At least 2 to 4 months. </summary>
-        public static AvailabilityLengthOfStay AtLeast2To4Months { get; } = new AvailabilityLengthOfStay(AtLeast2To4MonthsValue);
+        public static AvailabilityLengthOfStay AtLeast2To4Months { get; set; } = new AvailabilityLengthOfStay(AtLeast2To4MonthsValue);
         /// <summary> Over 4 months. </summary>
-        public static AvailabilityLengthOfStay Over4Months { get; } = new AvailabilityLengthOfStay(Over4MonthsValue);
+        public static AvailabilityLengthOfStay Over4Months { get; set; } = new AvailabilityLengthOfStay(Over4MonthsValue);
         /// <summary> Determines if two <see cref="AvailabilityLengthOfStay"/> values are the same. </summary>
         public static bool operator ==(AvailabilityLengthOfStay left, AvailabilityLengthOfStay right) => left.Equals(right);
         /// <summary> Determines if two <see cref="AvailabilityLengthOfStay"/> values are not the same. </summary>
