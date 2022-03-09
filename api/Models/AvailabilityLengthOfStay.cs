@@ -25,19 +25,19 @@ namespace SiteOfRefuge.API
             _value = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        private const string AFewDaysUpToAWeekValue = "A few days, up to a week";
-        private const string UpToAMonthValue = "Up to a month";
-        private const string AtLeast2To4MonthsValue = "At least 2 to 4 months";
-        private const string Over4MonthsValue = "Over 4 months";
+        private const string LessThanThreeDaysValue = "Less than 3 days";
+        private const string OneWeekOrLessValue = "One week or less";
+        private const string OneToTwoWeeksValue = "1-2 weeks";
+        private const string Over2WeeksValue = "More than 2 weeks";
 
         /// <summary> A few days, up to a week. </summary>
-        public static AvailabilityLengthOfStay AFewDaysUpToAWeek { get; set; } = new AvailabilityLengthOfStay(AFewDaysUpToAWeekValue);
+        public static AvailabilityLengthOfStay LessThanThreeDays { get; set; } = new AvailabilityLengthOfStay(LessThanThreeDaysValue);
         /// <summary> Up to a month. </summary>
-        public static AvailabilityLengthOfStay UpToAMonth { get; set; } = new AvailabilityLengthOfStay(UpToAMonthValue);
+        public static AvailabilityLengthOfStay OneWeekOrLess { get; set; } = new AvailabilityLengthOfStay(OneWeekOrLessValue);
         /// <summary> At least 2 to 4 months. </summary>
-        public static AvailabilityLengthOfStay AtLeast2To4Months { get; set; } = new AvailabilityLengthOfStay(AtLeast2To4MonthsValue);
+        public static AvailabilityLengthOfStay OneToTwoWeeks { get; set; } = new AvailabilityLengthOfStay(OneToTwoWeeksValue);
         /// <summary> Over 4 months. </summary>
-        public static AvailabilityLengthOfStay Over4Months { get; set; } = new AvailabilityLengthOfStay(Over4MonthsValue);
+        public static AvailabilityLengthOfStay Over2Weeks { get; set; } = new AvailabilityLengthOfStay(Over2WeeksValue);
         /// <summary> Determines if two <see cref="AvailabilityLengthOfStay"/> values are the same. </summary>
         public static bool operator ==(AvailabilityLengthOfStay left, AvailabilityLengthOfStay right) => left.Equals(right);
         /// <summary> Determines if two <see cref="AvailabilityLengthOfStay"/> values are not the same. </summary>

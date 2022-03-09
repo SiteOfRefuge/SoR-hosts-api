@@ -446,10 +446,10 @@ components:
           type: string
           description: How long a refugee can stay
           enum: 
-            - A few days, up to a week
-            - Up to a month
-            - At least 2 to 4 months
-            - Over 4 months
+            - Less than 3 days
+            - One week or less
+            - 1-2 weeks
+            - More than 2 weeks
 
     Contact:
       type: object
