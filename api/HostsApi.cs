@@ -86,10 +86,9 @@ namespace SiteOfRefuge.API
                 {
                     var reader = new StreamReader(req.Body);
                     var respBody = await reader.ReadToEndAsync();
-                    //j = JObject.Parse(respBody);
                     body = Newtonsoft.Json.JsonConvert.DeserializeObject<Host>(respBody);
-                    body.Summary.Availability.DateAvailable = DateTime.Parse(JObject.Parse(respBody)["summary"]["availability"]["date_available"].ToString());
-                    body.Summary.Availability.LengthOfStay = new AvailabilityLengthOfStay(JObject.Parse(respBody)["summary"]["availability"]["length_of_stay"].ToString());
+                    //body.Summary.Availability.DateAvailable = DateTime.Parse(JObject.Parse(respBody)["summary"]["availability"]["date_available"].ToString());
+                    //body.Summary.Availability.LengthOfStay = new AvailabilityLengthOfStay(JObject.Parse(respBody)["summary"]["availability"]["length_of_stay"].ToString());
                 }
                 catch(Exception exc)
                 {
@@ -117,11 +116,11 @@ namespace SiteOfRefuge.API
                             cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ID, System.Data.SqlDbType.UniqueIdentifier));
                             cmd.Parameters[PARAM_AVAILABILITY_ID].Value = body.Summary.Availability.Id;
                             cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_DATE_AVAILABLE, System.Data.SqlDbType.SmallDateTime));
-                            cmd.Parameters[PARAM_AVAILABILITY_DATE_AVAILABLE].Value = body.Summary.Availability.DateAvailable is null ? DBNull.Value : body.Summary.Availability.DateAvailable;
+                            cmd.Parameters[PARAM_AVAILABILITY_DATE_AVAILABLE].Value = body.Summary.Availability.Date_Available is null ? DBNull.Value : body.Summary.Availability.Date_Available;
                             cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_ACTIVE, System.Data.SqlDbType.Bit));
                             cmd.Parameters[PARAM_AVAILABILITY_ACTIVE].Value = (body.Summary.Availability.Active.HasValue && body.Summary.Availability.Active.Value) ? 1 : 0;
                             cmd.Parameters.Add(new SqlParameter(PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE, System.Data.SqlDbType.NVarChar));
-                            cmd.Parameters[PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE].Value = body.Summary.Availability.LengthOfStay is null ? DBNull.Value : body.Summary.Availability.LengthOfStay.Value.Value;
+                            cmd.Parameters[PARAM_AVAILABILITY_LENGTH_OF_STAY_VALUE].Value = body.Summary.Availability.Length_Of_Stay is null ? DBNull.Value : body.Summary.Availability.Length_Of_Stay.Value.Value;
 
                             cmd.ExecuteNonQuery();
                         }
@@ -136,7 +135,7 @@ namespace SiteOfRefuge.API
                             cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_REGION, System.Data.SqlDbType.NVarChar));
                             cmd.Parameters[PARAM_HOSTSUMMARY_REGION].Value = body.Summary.Region;
                             cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_PEOPLE, System.Data.SqlDbType.Int));
-                            cmd.Parameters[PARAM_HOSTSUMMARY_PEOPLE].Value = body.Summary.AllowedPeople;
+                            cmd.Parameters[PARAM_HOSTSUMMARY_PEOPLE].Value = body.Summary.Allowed_People;
                             cmd.Parameters.Add(new SqlParameter(PARAM_HOSTSUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
                             cmd.Parameters[PARAM_HOSTSUMMARY_MESSAGE].Value = body.Summary.Message;
 

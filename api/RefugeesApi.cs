@@ -89,8 +89,7 @@ namespace SiteOfRefuge.API
                     var reader = new StreamReader(req.Body);
                     var respBody = await reader.ReadToEndAsync();
                     refugee = Newtonsoft.Json.JsonConvert.DeserializeObject<Refugee>(respBody);
-                    refugee.Summary.PossessionDate = DateTime.Parse(JObject.Parse(respBody)["summary"]["possession_date"].ToString());
-                    // refugee = await JsonSerializer.DeserializeAsync<Refugee>(req.Body, SerializerOptions);
+                    //refugee.Summary.Possession_Date = DateTime.Parse(JObject.Parse(respBody)["summary"]["possession_date"].ToString());
                 }
                 catch(Exception exc)
                 {
@@ -145,7 +144,7 @@ namespace SiteOfRefuge.API
                             cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_MESSAGE, System.Data.SqlDbType.NVarChar));
                             cmd.Parameters[PARAM_REFUGEESUMMARY_MESSAGE].Value = refugee.Summary.Message;
                             cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEESUMMARY_POSSESSIONDATE, System.Data.SqlDbType.SmallDateTime));
-                            cmd.Parameters[PARAM_REFUGEESUMMARY_POSSESSIONDATE].Value = refugee.Summary.PossessionDate;
+                            cmd.Parameters[PARAM_REFUGEESUMMARY_POSSESSIONDATE].Value = refugee.Summary.Possession_Date;
                             cmd.ExecuteNonQuery();
                         }
 

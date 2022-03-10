@@ -22,25 +22,24 @@ namespace SiteOfRefuge.API.Models
 
         /// <summary> Initializes a new instance of Availability. </summary>
         /// <param name="id"> Unique identifier in UUID/GUID format. </param>
-        /// <param name="dateAvailable"> Date when shelter will be available. </param>
+        /// <param name="date_Available"> Date when shelter will be available. </param>
         /// <param name="active"> Is this shelter currently available for matching with refugees?. </param>
-        /// <param name="lengthOfStay"> How long a refugee can stay. </param>
-        internal Availability(Guid? id, DateTime? dateAvailable, bool? active, AvailabilityLengthOfStay? lengthOfStay)
+        /// <param name="length_Of_Stay"> How long a refugee can stay. </param>
+        internal Availability(Guid? id, DateTime? date_Available, bool? active, AvailabilityLengthOfStay? length_Of_Stay)
         {
             Id = id;
-            DateAvailable = dateAvailable;
+            Date_Available = date_Available;
             Active = active;
-            LengthOfStay = lengthOfStay;
+            Length_Of_Stay = length_Of_Stay;
         }
 
         /// <summary> Unique identifier in UUID/GUID format. </summary>
         public Guid? Id { get; set; }
         /// <summary> Date when shelter will be available. </summary>
-        [JsonConverter(typeof(CustomDateTimeConverter))]
-        public DateTime? DateAvailable { get; set; }
+        public DateTime? Date_Available { get; set; }
         /// <summary> Is this shelter currently available for matching with refugees?. </summary>
         public bool? Active { get; set; }
         /// <summary> How long a refugee can stay. </summary>
-        public AvailabilityLengthOfStay? LengthOfStay { get; set; }
+        public AvailabilityLengthOfStay? Length_Of_Stay { get; set; }
     }
 }

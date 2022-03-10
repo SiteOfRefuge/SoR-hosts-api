@@ -22,9 +22,9 @@ namespace SiteOfRefuge.API.Models
         /// <param name="id"> Unique identifier in UUID/GUID format. </param>
         /// <param name="region"> The region where the refugee is located. </param>
         /// <param name="people"> . </param>
-        /// <param name="possessionDate"> Date when shelter is needed by. </param>
+        /// <param name="possession_Date"> Date when shelter is needed by. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="region"/> is null. </exception>
-        public RefugeeSummary(Guid id, string region, int people, DateTime possessionDate)
+        public RefugeeSummary(Guid id, string region, int people, DateTime possession_Date)
         {
             if (region == null)
             {
@@ -36,7 +36,7 @@ namespace SiteOfRefuge.API.Models
             People = people;
             Restrictions = new List<Restrictions>();
             Languages = new List<SpokenLanguages>();
-            PossessionDate = possessionDate;
+            Possession_Date = possession_Date;
         }
 
         /// <summary> Initializes a new instance of RefugeeSummary. </summary>
@@ -46,8 +46,8 @@ namespace SiteOfRefuge.API.Models
         /// <param name="message"> A freeform text field that allows for a personalized message. </param>
         /// <param name="restrictions"> Any restrictions that might impact placement. </param>
         /// <param name="languages"> . </param>
-        /// <param name="possessionDate"> Date when shelter is needed by. </param>
-        internal RefugeeSummary(Guid id, string region, int people, string message, IList<Restrictions> restrictions, IList<SpokenLanguages> languages, DateTime possessionDate)
+        /// <param name="possession_Date"> Date when shelter is needed by. </param>
+        internal RefugeeSummary(Guid id, string region, int people, string message, IList<Restrictions> restrictions, IList<SpokenLanguages> languages, DateTime possession_Date)
         {
             Id = id;
             Region = region;
@@ -55,7 +55,7 @@ namespace SiteOfRefuge.API.Models
             Message = message;
             Restrictions = restrictions;
             Languages = languages;
-            PossessionDate = possessionDate;
+            Possession_Date = possession_Date;
         }
 
         /// <summary> Unique identifier in UUID/GUID format. </summary>
@@ -69,7 +69,6 @@ namespace SiteOfRefuge.API.Models
         public IList<Restrictions> Restrictions { get; set; }
         public IList<SpokenLanguages> Languages { get; set; }
         /// <summary> Date when shelter is needed by. </summary>
-        [JsonConverter(typeof(CustomDateTimeConverter))]
-        public DateTime PossessionDate { get; set; }
+        public DateTime Possession_Date { get; set; }
     }
 }

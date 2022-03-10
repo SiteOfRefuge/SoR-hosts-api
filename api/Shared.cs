@@ -11,11 +11,6 @@ namespace SiteOfRefuge.API
 {
     internal class Shared
     {
-        internal static string FixUnicodeGibberish(string s)
-        {
-            byte[] bytes = Encoding.Default.GetBytes(s);
-            return Encoding.UTF8.GetString(bytes);
-        }
         internal static bool ValidateUserIdMatchesToken(FunctionContext context, Guid id)
         {
             return true;
@@ -25,14 +20,6 @@ namespace SiteOfRefuge.API
             var subject = claimsIdentity.Claims.FirstOrDefault( c => c.Type == "sub" ).Value;
             return string.Equals(subject, id.ToString(), StringComparison.OrdinalIgnoreCase);
         }
-
-        public class CustomDateTimeConverter : IsoDateTimeConverter
-        {
-            public CustomDateTimeConverter()
-            {
-                base.DateTimeFormat = "yyyy-MM-dd";
-            }
-        }    
     }
 
 }
