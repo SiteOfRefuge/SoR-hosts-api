@@ -1,11 +1,16 @@
-CREATE TABLE [SiteOfRefugeAPI.Models].[Invite](
-	[Id] [uniqueidentifier] NOT NULL,
-	[RefugeeId] [uniqueidentifier] NOT NULL,
-	[HostId] [uniqueidentifier] NOT NULL,
-	[DateRequested] [datetimeoffset](4) NULL,
-	[DateAccepted] [datetimeoffset](4) NULL,
- CONSTRAINT [PK_Invite] PRIMARY KEY CLUSTERED 
+create table Invite
 (
-	[Id]
-)
+	RefugeeId uniqueidentifier not null,
+	HostId uniqueidentifier not null,
+	Message nvarchar(4000),
+	DateSent smalldatetime not null,
+	RefugeeRescinded smalldatetime,
+	HostRescinded smalldatetime,
+	ExpirationDate smalldatetime not null,
+	AcceptedDate smalldatetime,
+	DateToClose smalldatetime,
+	CompletedDate smalldatetime,
+	CONSTRAINT [PK_Invite] PRIMARY KEY CLUSTERED ( RefugeeId, HostId ),
+	CONSTRAINT FK_Invite_Host foreign key(HostId) references Host(Id),
+	CONSTRAINT FK_Invite_Refugee foreign key(RefugeeId) references Refugee(Id)
 )

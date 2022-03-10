@@ -24,29 +24,35 @@ namespace SiteOfRefuge.API.Models
         }
 
         /// <summary> Initializes a new instance of Invite. </summary>
-        /// <param name="id"> Unique identifier in UUID/GUID format. </param>
         /// <param name="refugeeId"> Unique identifier in UUID/GUID format. </param>
         /// <param name="hostId"> Unique identifier in UUID/GUID format. </param>
         /// <param name="dateRequested"> Date when inivitation was sent. </param>
         /// <param name="dateAccepted"> Date when inivitation was accepted. </param>
-        internal Invite(Guid? id, Guid refugeeId, Guid hostId, DateTime dateRequested, DateTime? dateAccepted)
+        internal Invite(Guid refugeeId, Guid hostId, string message, DateTime dateSent, DateTime? refugeeRescinded,
+        DateTime? hostRescinded, DateTime expirationDate, DateTime? acceptedDate, DateTime? dateToClose, 
+        DateTime? completedDate)
         {
-            Id = id;
             RefugeeId = refugeeId;
             HostId = hostId;
-            DateRequested = dateRequested;
-            DateAccepted = dateAccepted;
+            this.Message = message;
+            this.DateSent = dateSent;
+            this.RefugeeRescinded = refugeeRescinded;
+            this.HostRescinded = hostRescinded;
+            this.ExpirationDate = expirationDate;
+            this.AcceptedDate = acceptedDate;
+            this.DateToClose = dateToClose;
+            this.CompletedDate = completedDate;
         }
 
-        /// <summary> Unique identifier in UUID/GUID format. </summary>
-        public Guid? Id { get; set; }
-        /// <summary> Unique identifier in UUID/GUID format. </summary>
         public Guid RefugeeId { get; set; }
-        /// <summary> Unique identifier in UUID/GUID format. </summary>
         public Guid HostId { get; set; }
-        /// <summary> Date when inivitation was sent. </summary>
-        public DateTime DateRequested { get; set; }
-        /// <summary> Date when inivitation was accepted. </summary>
-        public DateTime? DateAccepted { get; set; }
+        public string Message { get; set; }
+        public DateTime DateSent { get; set; }
+        public DateTime? RefugeeRescinded { get; set; }
+        public DateTime? HostRescinded { get; set; }
+        public DateTime ExpirationDate { get; set; }
+        public DateTime? AcceptedDate { get; set; }
+        public DateTime? DateToClose { get; set; }
+        public DateTime? CompletedDate { get; set; }
     }
 }
