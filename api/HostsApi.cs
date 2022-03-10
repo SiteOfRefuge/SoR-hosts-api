@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -365,7 +366,9 @@ namespace SiteOfRefuge.API
                     sql.Close();
 
                     response.StatusCode = HttpStatusCode.OK;
-                    response.WriteAsJsonAsync(json.ToString());
+                    string j = json.ToString();
+                    j = Regex.Unescape(j);
+                    response.WriteString(j);
                     return response;
                 }
             }

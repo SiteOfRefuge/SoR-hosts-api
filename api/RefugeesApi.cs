@@ -11,10 +11,12 @@ using System.Data.SqlClient;
 using System.IO;
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SiteOfRefuge.API.Middleware;
 using SiteOfRefuge.API.Models;
@@ -81,7 +83,7 @@ namespace SiteOfRefuge.API
             var response = req.CreateResponse(HttpStatusCode.OK);
 
             if (req.Body is not null)
-            {
+            { 
                 try
                 {
                     var reader = new StreamReader(req.Body);
@@ -331,7 +333,9 @@ namespace SiteOfRefuge.API
                     sql.Close();
 
                     response.StatusCode = HttpStatusCode.OK;
-                    response.WriteAsJsonAsync(json.ToString());
+                    string j = json.ToString();
+                    j = Regex.Unescape(j);
+                    response.WriteString(j);
                     return response;
                 }
             }
