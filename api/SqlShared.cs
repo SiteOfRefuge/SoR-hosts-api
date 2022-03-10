@@ -23,7 +23,8 @@ namespace SiteOfRefuge.API
         const string PARAM_CONTACTTOMETHODS_CONTACTID = "@ContactId";
         const string PARAM_CONTACTTOMETHODS_CONTACTMODEID = "@ContactModeId";
         const string PARAM_CONTACT_ID = "@ContactId";
-        const string PARAM_CONTACT_NAME = "@Name";
+        const string PARAM_CONTACT_FIRSTNAME = "@FirstName";
+        const string PARAM_CONTACT_LASTNAME = "@LastName";
 
         internal static SqlConnection GetSqlConnection()
         {
@@ -106,12 +107,14 @@ namespace SiteOfRefuge.API
 
         internal static void InsertContact(SqlConnection sql, SqlTransaction transaction, Contact contact)
         {
-            using(SqlCommand cmd = new SqlCommand($"insert into Contact(Id, Name) values({PARAM_CONTACT_ID}, {PARAM_CONTACT_NAME});", sql, transaction))
+            using(SqlCommand cmd = new SqlCommand($"insert into Contact(Id, FirstName, LastName) values({PARAM_CONTACT_ID}, {PARAM_CONTACT_FIRSTNAME}, {PARAM_CONTACT_LASTNAME});", sql, transaction))
             {
                 cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_ID, System.Data.SqlDbType.UniqueIdentifier));
                 cmd.Parameters[PARAM_CONTACT_ID].Value = contact.Id;
-                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_NAME, System.Data.SqlDbType.NVarChar));
-                cmd.Parameters[PARAM_CONTACT_NAME].Value = contact.Name;
+                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_FIRSTNAME, System.Data.SqlDbType.NVarChar));
+                cmd.Parameters[PARAM_CONTACT_FIRSTNAME].Value = contact.FirstName;
+                cmd.Parameters.Add(new SqlParameter(PARAM_CONTACT_LASTNAME, System.Data.SqlDbType.NVarChar));
+                cmd.Parameters[PARAM_CONTACT_LASTNAME].Value = contact.LastName;
                 cmd.ExecuteNonQuery();
             }
         }

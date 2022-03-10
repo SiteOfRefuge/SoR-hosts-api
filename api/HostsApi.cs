@@ -220,7 +220,8 @@ namespace SiteOfRefuge.API
                             a.Active as AvailabilityActive,
                             alos.value as AvailabilityLengthOfStayValue,
                             c.Id as RefugeeContactId,
-                            c.Name as RefugeeContactName
+                            c.FirstName as RefugeeContactFirstName,
+                            c.LastName as RefugeeContactLastName
                         from host h
                             join hostsummary hs 
                                 on h.summary = hs.id
@@ -277,7 +278,8 @@ namespace SiteOfRefuge.API
                             JObject contact = new JObject();
                             contactId = sdr.GetGuid(10);
                             contact["id"] = contactId.ToString();
-                            contact["name"] = sdr.GetString(11);
+                            contact["firstname"] = sdr.GetString(11);
+                            contact["lastname"] = sdr.GetString(12);
                             json["contact"] = contact;
                         }
                     }

@@ -206,7 +206,8 @@ namespace SiteOfRefuge.API
                         rs.Message as RefugeeSummaryMessage,
                         rs.PossessionDate as RefugeePossessionDate,
                         c.Id as RefugeeContactId,
-                        c.Name as RefugeeContactName
+                        c.FirstName as RefugeeContactFirstName,
+                        c.LastName as RefugeeContactLastName
                         from refugee r
                         join refugeesummary rs on r.summary = rs.id
                         join contact c on r.contact = c.id
@@ -241,7 +242,8 @@ namespace SiteOfRefuge.API
                             JObject contact = new JObject();
                             contactId = sdr.GetGuid(6);
                             contact["id"] = contactId.ToString();
-                            contact["name"] = sdr.GetString(7);
+                            contact["firstname"] = sdr.GetString(7);
+                            contact["lastname"] = sdr.GetString(8);
                             json["contact"] = contact;
 
                         }

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text;
 using Microsoft.Azure.Functions.Worker;
 using Newtonsoft.Json.Converters;
 using SiteOfRefuge.API.Middleware;
@@ -10,6 +11,11 @@ namespace SiteOfRefuge.API
 {
     internal class Shared
     {
+        internal static string FixUnicodeGibberish(string s)
+        {
+            byte[] bytes = Encoding.Default.GetBytes(s);
+            return Encoding.UTF8.GetString(bytes);
+        }
         internal static bool ValidateUserIdMatchesToken(FunctionContext context, Guid id)
         {
             return true;

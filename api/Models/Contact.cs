@@ -16,39 +16,49 @@ namespace SiteOfRefuge.API.Models
         public Contact() {}
 
         /// <summary> Initializes a new instance of Contact. </summary>
-        /// <param name="name"> The person&apos;s full name. </param>
+        /// <param name="firstname"> The person&apos;s first name. </param>
+        /// <param name="lastname"> The person&apos;s last name. </param>
         /// <param name="methods"> The way(s) in which this person can be contacted. </param>
         /// <exception cref="ArgumentNullException"> <paramref name="name"/> or <paramref name="methods"/> is null. </exception>
-        public Contact(string name, IList<ContactMode> methods)
+        public Contact(string firstname, string lastname, IList<ContactMode> methods)
         {
-            if (name == null)
+            if (firstname == null)
             {
-                throw new ArgumentNullException(nameof(name));
+                throw new ArgumentNullException(nameof(firstname));
+            }
+            if (lastname == null)
+            {
+                throw new ArgumentNullException(nameof(lastname));
             }
             if (methods == null)
             {
                 throw new ArgumentNullException(nameof(methods));
             }
 
-            Name = name;
+            FirstName = firstname;
+            LastName = lastname;
             Methods = methods;
         }
 
         /// <summary> Initializes a new instance of Contact. </summary>
         /// <param name="id"> Unique identifier in UUID/GUID format. </param>
-        /// <param name="name"> The person&apos;s full name. </param>
+        /// <param name="firstname"> The person&apos;s first name. </param>
+        /// <param name="lastname"> The person&apos;s last name. </param>
         /// <param name="methods"> The way(s) in which this person can be contacted. </param>
-        internal Contact(Guid? id, string name, IList<ContactMode> methods)
+        internal Contact(Guid? id, string firstname, string lastname, IList<ContactMode> methods)
         {
             Id = id;
-            Name = name;
+            FirstName = firstname;
+            LastName = lastname;
             Methods = methods;
         }
 
         /// <summary> Unique identifier in UUID/GUID format. </summary>
         public Guid? Id { get; set; }
-        /// <summary> The person&apos;s full name. </summary>
-        public string Name { get; set; }
+        /// <summary> The person&apos;s first name. </summary>
+        public string FirstName { get; set; }
+        /// <summary> The person&apos;s last name. </summary>
+        public string LastName { get; set; }
         /// <summary> The way(s) in which this person can be contacted. </summary>
         public IList<ContactMode> Methods { get; set; }
     }

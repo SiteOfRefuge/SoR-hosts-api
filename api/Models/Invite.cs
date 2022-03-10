@@ -29,7 +29,7 @@ namespace SiteOfRefuge.API.Models
         /// <param name="hostId"> Unique identifier in UUID/GUID format. </param>
         /// <param name="dateRequested"> Date when inivitation was sent. </param>
         /// <param name="dateAccepted"> Date when inivitation was accepted. </param>
-        internal Invite(Guid? id, Guid refugeeId, Guid hostId, DateTimeOffset? dateRequested, DateTimeOffset? dateAccepted)
+        internal Invite(Guid? id, Guid refugeeId, Guid hostId, DateTime dateRequested, DateTime? dateAccepted)
         {
             Id = id;
             RefugeeId = refugeeId;
@@ -45,8 +45,8 @@ namespace SiteOfRefuge.API.Models
         /// <summary> Unique identifier in UUID/GUID format. </summary>
         public Guid HostId { get; set; }
         /// <summary> Date when inivitation was sent. </summary>
-        public DateTimeOffset? DateRequested { get; set; }
+        public DateTime DateRequested { get; set; }
         /// <summary> Date when inivitation was accepted. </summary>
-        public DateTimeOffset? DateAccepted { get; set; }
+        public DateTime? DateAccepted { get; set; }
     }
 }

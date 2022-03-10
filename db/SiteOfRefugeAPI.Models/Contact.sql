@@ -1,6 +1,7 @@
 CREATE TABLE [Contact](
 	[Id] [uniqueidentifier] NOT NULL,
-	[Name] [nvarchar](4000) NOT NULL,
+	[FirstName] [nvarchar](4000) NOT NULL,
+	[LastName] [nvarchar](4000) NOT NULL
  CONSTRAINT [PK_Contact] PRIMARY KEY CLUSTERED 
 (
 	[Id]
