@@ -253,7 +253,7 @@ namespace SiteOfRefuge.API
 
                     const string PARAM_CONTACTTOMETHODS_CONTACTID = "@ContactId";
                     using(SqlCommand cmd = new SqlCommand($@"select cm.Id,
-                        cmm.description,
+                        cmm.value as contactmethod,
                         cm.Value,
                         cm.verified
                         from contacttomethods ctm
@@ -284,7 +284,7 @@ namespace SiteOfRefuge.API
                         json["contact"]["methods"] = JToken.FromObject(contactMethods);
                     }
 
-                    using(SqlCommand cmd = new SqlCommand($@"select sl.description
+                    using(SqlCommand cmd = new SqlCommand($@"select sl.value
                         from refugeesummarytolanguages rstl
                         join spokenlanguages sl on rstl.spokenlanguagesid = sl.id
                         where rstl.refugeesummaryid = {PARAM_REFUGEESUMMARYTOLANGUAGES_SUMMARYID}", sql))
@@ -307,7 +307,7 @@ namespace SiteOfRefuge.API
                         json["summary"]["languages"] = JToken.FromObject(languages);
                     }
 
-                    using(SqlCommand cmd = new SqlCommand($@"select r.description
+                    using(SqlCommand cmd = new SqlCommand($@"select r.value
                         from refugeesummarytorestrictions rstr
                         join Restrictions r on rstr.restrictionsid = r.id
                         where rstr.refugeesummaryid = {PARAM_REFUGEESUMMARYTORESTRICTIONS_SUMMARYID}", sql))
