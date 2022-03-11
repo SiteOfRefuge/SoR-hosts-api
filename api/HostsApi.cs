@@ -96,7 +96,14 @@ namespace SiteOfRefuge.API
                     response.StatusCode = HttpStatusCode.BadRequest;
                     return response;
                 }
-            }            
+            }     
+
+            if(!Shared.ValidateUserIdMatchesToken(context, body.Id))
+            {
+                logger.LogInformation($"{context.InvocationId.ToString()} - Expected host Id does not match subject claim when creating a new host.");                    
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
+            }       
             
             using(SqlConnection sql = SqlShared.GetSqlConnection())
             {
