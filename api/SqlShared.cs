@@ -188,5 +188,20 @@ namespace SiteOfRefuge.API
             }   
         }
 
+        internal static void UpdateInvitationStatusForHost()
+        {
+            //TODO
+        }
+
+        internal static void UpdateInvitationStatusForRefugee()
+        {
+            //TODO
+        }
+
+        internal static bool CanInviteBeSent(Guid HostId, Guid RefugeeId)
+        {
+            return true;
+            //TODO: check if statuses of accounts allow invite to be sent
+        }
     }
 }
