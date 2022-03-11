@@ -1,6 +1,6 @@
 CREATE TABLE [Availability](
 	[Id] [uniqueidentifier] NOT NULL,
-	[DateAvailable] [smalldatetime](4) NULL,
+	[DateAvailable] [smalldatetime] NULL,
 	[Active] [bit] NULL,
 	[LengthOfStay] [int],
  CONSTRAINT [PK_Availability] PRIMARY KEY CLUSTERED 

@@ -3,7 +3,7 @@ CREATE TABLE [RefugeeSummary](
 	[Region] [nvarchar](4000) NOT NULL,
 	[People] [int] NOT NULL,
 	[Message] [nvarchar](4000) NULL,
-	[PossessionDate] [smalldatetime](4) NOT NULL,
+	[PossessionDate] [smalldatetime] NOT NULL,
  CONSTRAINT [PK_RefugeeSummary] PRIMARY KEY CLUSTERED 
 (
 	[Id]
