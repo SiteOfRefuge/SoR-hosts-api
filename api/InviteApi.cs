@@ -239,11 +239,21 @@ namespace SiteOfRefuge.API
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Invite id in UUID/GUID format. </param>
         [Function(nameof(DeleteInvite))]
-        public HttpResponseData DeleteInvite([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "invite/{id}")] HttpRequestData req, string id, FunctionContext context)
+        public HttpResponseData DeleteInvite([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "invite/{id}")] HttpRequestData req, Guid refugeeId, Guid hostId, FunctionContext context)
         {
             var logger = context.GetLogger(nameof(DeleteInvite));
             logger.LogInformation("HTTP trigger function processed a request.");
 
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            if(!Shared.ValidateUserIdMatchesToken(context, refugeeId) && !Shared.ValidateUserIdMatchesToken(context, hostId))
+            {
+                logger.LogInformation($"{context.InvocationId.ToString()} - Expected refugee Id and host Id do not match subject claim when deleting an invite.");                    
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
+            }
+
+            
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404

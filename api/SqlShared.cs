@@ -196,6 +196,9 @@ namespace SiteOfRefuge.API
         internal static void UpdateInvitationStatusForRefugee()
         {
             //TODO
+            //archive any invites that are now expired
+            //archive any invites where host had another accept & 48 hrs pass
+            //archive any invites where either party has rescinded (in time)
         }
 
         internal static bool CanInviteBeSent(Guid HostId, Guid RefugeeId)
