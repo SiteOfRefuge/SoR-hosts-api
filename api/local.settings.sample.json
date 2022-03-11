@@ -5,6 +5,12 @@
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
     "OpenApi_HideDocument": "true",
     "AuthenticationAuthority": "https://your_b2c_domain.b2clogin.com/your_b2c_domain.onmicrosoft.com/b2c_1_sms_registry/v2.0",
-    "AuthenticationClientId": "your-aad-app-id"
+    "AuthenticationClientId": "your-aad-app-id",
+    "TwilioAccountSid": "",
+    "TwilioAuthToken": "",
+    "TwilioFromPhone": "",
+    "EmailFromAddress": "",
+    "EmailFromName": "",
+    "SendGridApiKey": ""
   }
 }

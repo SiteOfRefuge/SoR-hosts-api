@@ -6,9 +6,21 @@
 #nullable disable
 
 using System;
+using System.IO;
+using System.Net;
+using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using SiteOfRefuge.API.Models;
+
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
+
+using SendGrid;
+using SendGrid.Helpers.Mail;
+using System.Data.SqlClient;
 
 namespace SiteOfRefuge.API
 {
@@ -36,18 +48,156 @@ namespace SiteOfRefuge.API
         /// <summary> Invite a refugee to connect. </summary>
         /// <param name="body"> The Id to use. </param>
         /// <param name="req"> Raw HTTP Request. </param>
-        [Function(nameof(InviteRefugee))]
-        public HttpResponseData InviteRefugee([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "invite")] string body, HttpRequestData req, FunctionContext context)
+        [Function(nameof(InviteRefugeeAsync))]
+        public async Task<HttpResponseData> InviteRefugeeAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "invite")]  HttpRequestData req, FunctionContext context)
         {
-            var logger = context.GetLogger(nameof(InviteRefugee));
+            var logger = context.GetLogger(nameof(InviteRefugeeAsync));
             logger.LogInformation("HTTP trigger function processed a request.");
+            
 
-            // TODO: Handle Documented Responses.
-            // Spec Defines: HTTP 204
-            // Spec Defines: HTTP 403
-            // Spec Defines: HTTP 404
+            InviteCreate invite = null;
+            var response = req.CreateResponse(HttpStatusCode.OK);
 
-            throw new NotImplementedException();
+            try
+            {
+                if (req.Body is not null)
+                { 
+                    try
+                    {
+                        var reader = new StreamReader(req.Body);
+                        var respBody = await reader.ReadToEndAsync();
+                        invite = Newtonsoft.Json.JsonConvert.DeserializeObject<InviteCreate>(respBody);
+                        //refugee.Summary.Possession_Date = DateTime.Parse(JObject.Parse(respBody)["summary"]["possession_date"].ToString());
+                    }
+                    catch(Exception exc)
+                    {
+                        logger.LogInformation($"{context.InvocationId.ToString()} - Error deserializing Invite object. Err: {exc.Message}");
+                        response.StatusCode = HttpStatusCode.BadRequest;
+                        return response;
+                    }
+                }
+                
+                if(!Shared.ValidateUserIdMatchesToken(context, invite.HostId))
+                {
+                    logger.LogInformation($"{context.InvocationId.ToString()} - Expected host Id does not match subject claim when creating a new invite.");                    
+                    response.StatusCode = HttpStatusCode.Forbidden;
+                    return response;
+                }
+
+                //TODO: not implemented yet, but need to update invite statuses to ensure not doing something bad
+                SqlShared.UpdateInvitationStatusForHost();
+                SqlShared.UpdateInvitationStatusForRefugee();
+
+                if(!SqlShared.CanInviteBeSent(invite.HostId, invite.RefugeeId))
+                {
+                    logger.LogInformation($"Invite would violate policy: {invite.HostId}, {invite.RefugeeId}");
+                    response.StatusCode = HttpStatusCode.Forbidden;
+                    return response;
+                }
+
+                const string PARAM_REFUGEE_ID = "@RefugeeId";
+                const string PARAM_HOST_ID = "@HostId";
+                const string PARAM_MESSAGE = "@Message";
+                string sms = null;
+                string email = null;
+                string firstname = null;
+                string lastname = null;
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+
+                    try
+                    {
+                        using(SqlCommand cmd = new SqlCommand($@"
+                            declare @dt smalldatetime;
+                            set @dt = getutcdate();
+                            select @dt, dateadd(d, 2, @dt);
+                            insert into Invite(RefugeeId, HostId, Message, DateSent, ExpirationDate) 
+                            values({PARAM_REFUGEE_ID}, {PARAM_HOST_ID}, {PARAM_MESSAGE}, @dt, dateadd(d, 2, @dt));", sql))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_REFUGEE_ID].Value = invite.RefugeeId;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_HOST_ID].Value = invite.HostId;
+                            cmd.Parameters.Add(new SqlParameter(PARAM_MESSAGE, System.Data.SqlDbType.NVarChar));
+                            cmd.Parameters[PARAM_MESSAGE].Value = invite.Message;
+
+                            cmd.ExecuteNonQuery();
+                        }
+
+
+                    }
+                    catch(Exception exc)
+                    {
+                        logger.LogInformation($"{exc.ToString()} - Error inserting invite into database.");
+                        response.StatusCode = HttpStatusCode.Forbidden;
+                        return response;
+                    }
+
+                    try
+                    {
+                        using(SqlCommand cmd = new SqlCommand($@"select top 1 SMSContactValue, EmailContactValue, RefugeeContactFirstName, RefugeeContactLastName  
+                            from Refugees where Id = {PARAM_REFUGEE_ID}", sql))
+                        {
+                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                            cmd.Parameters[PARAM_REFUGEE_ID].Value = invite.RefugeeId;
+
+                            using(SqlDataReader sdr = cmd.ExecuteReader())
+                            {
+                                while(sdr.Read())
+                                {
+                                    sms = sdr.GetString(0);
+                                    email = sdr.GetString(1);
+                                    firstname = sdr.GetString(2);
+                                    lastname = sdr.GetString(3);
+                                }
+                            }
+                        }
+
+
+                    }
+                    catch(Exception exc)
+                    {
+                        logger.LogInformation($"{exc.ToString()} - Error inserting invite into database.");
+                        response.StatusCode = HttpStatusCode.Forbidden;
+                        return response;
+                    }
+                }
+
+
+                //only after all the real work is done, notify the recipient of the invite
+                if(!string.IsNullOrEmpty(sms))
+                {
+                    if(Shared.SendSMS(sms))
+                        logger.LogInformation("SMS worked!");
+                    else
+                        logger.LogInformation("SMS failed!");
+                }
+
+                if(!string.IsNullOrEmpty(email))
+                {
+                    string name = "SiteOfRefuge Customer";
+                    if(!string.IsNullOrEmpty(firstname))
+                    {
+                        name = firstname;
+                        if(!string.IsNullOrEmpty(lastname))
+                            name += " " + lastname;
+                    }
+                    if(await Shared.SendEmailAsync(email, name))
+                        logger.LogInformation("Email sent!");
+                    else
+                        logger.LogInformation("Email failed!");
+                }
+
+            }
+            catch(Exception exc)
+            {
+                logger.LogInformation($"{exc.ToString()} - Error sending invite.");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                return response;
+            }
+
+            return response;
         }
 
         /// <summary> Show an invitation. </summary>
