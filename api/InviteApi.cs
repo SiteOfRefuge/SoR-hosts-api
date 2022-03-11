@@ -26,6 +26,9 @@ namespace SiteOfRefuge.API
 {
     public class InviteApi
     {
+
+        const bool SEND_NOTIFICATIONS = false; //turn this off while debugging to avoid random numbers from sample data getting texts/emails
+
         /// <summary> Initializes a new instance of InviteApi. </summary>
         public InviteApi() {}
 
@@ -164,31 +167,32 @@ namespace SiteOfRefuge.API
                     }
                 }
 
-
-                //only after all the real work is done, notify the recipient of the invite
-                if(!string.IsNullOrEmpty(sms))
+                if(SEND_NOTIFICATIONS)
                 {
-                    if(Shared.SendSMS(sms))
-                        logger.LogInformation("SMS worked!");
-                    else
-                        logger.LogInformation("SMS failed!");
-                }
-
-                if(!string.IsNullOrEmpty(email))
-                {
-                    string name = "SiteOfRefuge Customer";
-                    if(!string.IsNullOrEmpty(firstname))
+                    //only after all the real work is done, notify the recipient of the invite
+                    if(!string.IsNullOrEmpty(sms))
                     {
-                        name = firstname;
-                        if(!string.IsNullOrEmpty(lastname))
-                            name += " " + lastname;
+                        if(Shared.SendSMS(sms))
+                            logger.LogInformation("SMS worked!");
+                        else
+                            logger.LogInformation("SMS failed!");
                     }
-                    if(await Shared.SendEmailAsync(email, name))
-                        logger.LogInformation("Email sent!");
-                    else
-                        logger.LogInformation("Email failed!");
-                }
 
+                    if(!string.IsNullOrEmpty(email))
+                    {
+                        string name = "SiteOfRefuge Customer";
+                        if(!string.IsNullOrEmpty(firstname))
+                        {
+                            name = firstname;
+                            if(!string.IsNullOrEmpty(lastname))
+                                name += " " + lastname;
+                        }
+                        if(await Shared.SendEmailAsync(email, name))
+                            logger.LogInformation("Email sent!");
+                        else
+                            logger.LogInformation("Email failed!");
+                    }
+                }
             }
             catch(Exception exc)
             {
@@ -253,7 +257,7 @@ namespace SiteOfRefuge.API
                 return response;
             }
 
-            
+
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404
