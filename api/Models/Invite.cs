@@ -30,7 +30,7 @@ namespace SiteOfRefuge.API.Models
         /// <param name="dateAccepted"> Date when inivitation was accepted. </param>
         internal Invite(Guid refugeeId, Guid hostId, string message, DateTime dateSent, DateTime? refugeeRescinded,
         DateTime? hostRescinded, DateTime expirationDate, DateTime? acceptedDate, DateTime? dateToClose, 
-        DateTime? completedDate)
+        DateTime? completedDate, bool archived)
         {
             RefugeeId = refugeeId;
             HostId = hostId;
@@ -42,6 +42,7 @@ namespace SiteOfRefuge.API.Models
             this.AcceptedDate = acceptedDate;
             this.DateToClose = dateToClose;
             this.CompletedDate = completedDate;
+            this.Archived = archived;
         }
 
         public Guid RefugeeId { get; set; }
@@ -54,5 +55,6 @@ namespace SiteOfRefuge.API.Models
         public DateTime? AcceptedDate { get; set; }
         public DateTime? DateToClose { get; set; }
         public DateTime? CompletedDate { get; set; }
+        public bool Archived { get; set; }
     }
 }
