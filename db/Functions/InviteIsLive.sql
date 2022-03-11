@@ -1,10 +1,10 @@
 create function dbo.InviteIsLive(@dtSent smalldatetime, @dtRefugeeRescinded smalldatetime, @dtHostRescinded smalldatetime, 
-	@dtExpiration smalldatetime, @dtAccepted smalldatetime, @dtToClose smalldatetime, @dtCompleted smalldatetime, @archived bit)
+	@dtExpiration smalldatetime, @dtAccepted smalldatetime, @dtToClose smalldatetime, @dtCompleted smalldatetime, @hostArchived bit, @refugeeArchived bit)
 returns bit
 as
 begin
 	return 
-		case when @archived = 1 then 0
+		case when @hostArchived = 1 or @refugeeArchived = 1 then 0
 		else
 			case when @dtAccepted is not null or @dtToClose is not null then 0
 			else
