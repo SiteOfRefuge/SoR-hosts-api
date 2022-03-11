@@ -10,7 +10,8 @@ create table Invite
 	AcceptedDate smalldatetime,
 	DateToClose smalldatetime,
 	CompletedDate smalldatetime,
-	Archived bit not null default(0),
+	HostArchived bit not null default(0),
+	RefugeeArchived bit not null default(0),
 	CONSTRAINT [PK_Invite] PRIMARY KEY CLUSTERED ( RefugeeId, HostId ),
 	CONSTRAINT FK_Invite_Host foreign key(HostId) references Host(Id),
 	CONSTRAINT FK_Invite_Refugee foreign key(RefugeeId) references Refugee(Id)
