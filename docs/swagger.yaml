@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 1.0.0
+  version: 1.0.1
   title: Site of Refuge API
   description: An API that helps match refugees with resources like shelter, education and jobs
   termsOfService: https://siteofrefuge.com/tos
@@ -314,7 +314,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref:  '#/components/schemas/Id'
+              type: object
+              properties:
+                refugeeId:
+                  type: string
+                  format: uuid
+                  description: Unique identifier in UUID/GUID format
+                  pattern: '^[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$'
+                  example: f56f3f4f-a118-40be-9c39-70f6a80bfa95
+                hostId:
+                  type: string
+                  format: uuid
+                  description: Unique identifier in UUID/GUID format
+                  pattern: '^[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$'
+                  example: fa81a2c0-dc01-41a2-8976-c86415629d93
+                message:
+                  type: string
+                  example: You're more than welcome to come stay with me for a bit.
       responses:
         204:
           description: Successfully sent an invitation
@@ -604,7 +620,6 @@ components:
           $ref: '#/components/schemas/Id'
         region:
           $ref: '#/components/schemas/Region'
-          description: The region where the refugee is located.
         people:
           type: integer
           format: int32
