@@ -22,7 +22,7 @@ join
 		sum(case when IsRescinded = 1 then 1 else 0 end) as HostNumRescinded,
 		sum(case when IsCompleted = 1 then 1 else 0 end) as HostNumCompleted
 	from InviteWithLocalStatus
-	where Archived = 0
+	where IsArchived = 0
 	group by HostId
 ) hAgg
 	on iwls.HostId = hAgg.HostId
@@ -36,7 +36,7 @@ join
 		sum(case when IsRescinded = 1 then 1 else 0 end) as RefugeeNumRescinded,
 		sum(case when IsCompleted = 1 then 1 else 0 end) as RefugeeNumCompleted
 	from InviteWithLocalStatus
-	where Archived = 0
+	where IsArchived = 0
 	group by RefugeeId
 ) rAgg
 	on iwls.RefugeeId = rAgg.RefugeeId
