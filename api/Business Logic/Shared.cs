@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Converters;
 using SendGrid;
 using SendGrid.Helpers.Mail;
@@ -17,6 +18,41 @@ namespace SiteOfRefuge.API
 {
     internal class Shared
     {
+        internal const bool SEND_NOTIFICATIONS = false; //turn this off while debugging to avoid random numbers from sample data getting texts/emails
+        internal static async Task SendNotifications(string sms, string email, string firstname, string lastname, string message, ILogger logger = null)
+        {
+                if(Shared.SEND_NOTIFICATIONS)
+                {
+                    //only after all the real work is done, notify the recipient of the invite
+                    if(!string.IsNullOrEmpty(sms))
+                    {
+                        if(Shared.SendSMS(sms, message))
+                        {
+                            if(logger != null) logger.LogInformation("SMS worked!");
+                        }
+                        else
+                            if(logger != null) logger.LogInformation("SMS failed!");
+                    }
+
+                    if(!string.IsNullOrEmpty(email))
+                    {
+                        string name = "SiteOfRefuge Customer";
+                        if(!string.IsNullOrEmpty(firstname))
+                        {
+                            name = firstname;
+                            if(!string.IsNullOrEmpty(lastname))
+                                name += " " + lastname;
+                        }
+                        if(await Shared.SendEmailAsync(email, name, message))
+                        {
+                            if(logger != null) logger.LogInformation("Email sent!");
+                        }
+                        else
+                            if(logger != null) logger.LogInformation("Email failed!");
+                    }
+                }            
+        }
+
         internal static bool ValidateUserIdMatchesToken(FunctionContext context, Guid id)
         {
             return true;
@@ -27,7 +63,7 @@ namespace SiteOfRefuge.API
             return string.Equals(subject, id.ToString(), StringComparison.OrdinalIgnoreCase);
         }
 
-        internal static bool SendSMS(string to_phone_number, string message = "You've been offered shelter! Login at https://siteofrefuge.com to see your invitation.")
+        internal static bool SendSMS(string to_phone_number, string message)
         {
             string TwilioAccountSid = Environment.GetEnvironmentVariable("TwilioAccountSid");
             string TwilioAuthToken = Environment.GetEnvironmentVariable("TwilioAuthToken");
@@ -44,7 +80,7 @@ namespace SiteOfRefuge.API
             return !string.IsNullOrEmpty(msg.Sid);
         }
 
-        internal static async Task<bool> SendEmailAsync(string to_address, string to_name, string message = "You've been offered shelter! Login at https://siteofrefuge.com to see your invitation.")
+        internal static async Task<bool> SendEmailAsync(string to_address, string to_name, string message)
         {
            var apiKey = Environment.GetEnvironmentVariable("SendGridApiKey");
             var email_client = new SendGridClient(apiKey);

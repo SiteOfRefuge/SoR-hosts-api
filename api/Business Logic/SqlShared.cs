@@ -188,6 +188,33 @@ namespace SiteOfRefuge.API
             }   
         }
 
+        internal static void GetContactInfo(SqlConnection sql, Guid id, bool IsRefugee, out string sms, out string email, out string firstname, out string lastname)
+        {
+            sms = "";
+            email = "";
+            firstname = "";
+            lastname = "";
+
+            string TABLENAME = IsRefugee ? "Refugees" : "Hosts";
+            using(SqlCommand cmd = new SqlCommand($@"select top 1 SMSContactValue, EmailContactValue, RefugeeContactFirstName, RefugeeContactLastName  
+                from {TABLENAME} where Id = {PARAM_ID}", sql))
+            {
+                cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
+                cmd.Parameters[PARAM_ID].Value = id;
+
+                using(SqlDataReader sdr = cmd.ExecuteReader())
+                {
+                    while(sdr.Read())
+                    {
+                        sms = sdr.GetString(0);
+                        email = sdr.GetString(1);
+                        firstname = sdr.GetString(2);
+                        lastname = sdr.GetString(3);
+                    }
+                }
+            }
+        }
+
         internal static void UpdateInvitationStatusForHost()
         {
             //TODO

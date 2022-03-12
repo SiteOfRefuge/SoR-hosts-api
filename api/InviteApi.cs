@@ -27,8 +27,6 @@ namespace SiteOfRefuge.API
     public class InviteApi
     {
 
-        const bool SEND_NOTIFICATIONS = false; //turn this off while debugging to avoid random numbers from sample data getting texts/emails
-
         /// <summary> Initializes a new instance of InviteApi. </summary>
         public InviteApi() {}
 
@@ -127,8 +125,6 @@ namespace SiteOfRefuge.API
 
                             cmd.ExecuteNonQuery();
                         }
-
-
                     }
                     catch(Exception exc)
                     {
@@ -139,60 +135,18 @@ namespace SiteOfRefuge.API
 
                     try
                     {
-                        using(SqlCommand cmd = new SqlCommand($@"select top 1 SMSContactValue, EmailContactValue, RefugeeContactFirstName, RefugeeContactLastName  
-                            from Refugees where Id = {PARAM_REFUGEE_ID}", sql))
-                        {
-                            cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
-                            cmd.Parameters[PARAM_REFUGEE_ID].Value = invite.RefugeeId;
-
-                            using(SqlDataReader sdr = cmd.ExecuteReader())
-                            {
-                                while(sdr.Read())
-                                {
-                                    sms = sdr.GetString(0);
-                                    email = sdr.GetString(1);
-                                    firstname = sdr.GetString(2);
-                                    lastname = sdr.GetString(3);
-                                }
-                            }
-                        }
-
-
+                        SqlShared.GetContactInfo(sql, invite.RefugeeId, true, out sms, out email, out firstname, out lastname);
                     }
                     catch(Exception exc)
                     {
-                        logger.LogInformation($"{exc.ToString()} - Error inserting invite into database.");
+                        logger.LogInformation($"{exc.ToString()} - Error getting contact info for notifications.");
                         response.StatusCode = HttpStatusCode.Forbidden;
                         return response;
                     }
                 }
 
-                if(SEND_NOTIFICATIONS)
-                {
-                    //only after all the real work is done, notify the recipient of the invite
-                    if(!string.IsNullOrEmpty(sms))
-                    {
-                        if(Shared.SendSMS(sms))
-                            logger.LogInformation("SMS worked!");
-                        else
-                            logger.LogInformation("SMS failed!");
-                    }
-
-                    if(!string.IsNullOrEmpty(email))
-                    {
-                        string name = "SiteOfRefuge Customer";
-                        if(!string.IsNullOrEmpty(firstname))
-                        {
-                            name = firstname;
-                            if(!string.IsNullOrEmpty(lastname))
-                                name += " " + lastname;
-                        }
-                        if(await Shared.SendEmailAsync(email, name))
-                            logger.LogInformation("Email sent!");
-                        else
-                            logger.LogInformation("Email failed!");
-                    }
-                }
+                //SEND NOTIFICATIONS
+                Shared.SendNotifications(sms, email, firstname, lastname, "You've been offered shelter! Login at https://siteofrefuge.com to see your invitation.", logger);
             }
             catch(Exception exc)
             {
