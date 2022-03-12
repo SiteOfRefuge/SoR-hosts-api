@@ -1,6 +1,7 @@
 #nullable disable
 
 using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Net;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using SiteOfRefuge.API.Middleware;
+using static SiteOfRefuge.API.SqlShared;
 
 namespace SiteOfRefuge.API
 {
@@ -24,37 +26,44 @@ namespace SiteOfRefuge.API
 
             // TODO: Handle Documented Responses.
             var response = req.CreateResponse(HttpStatusCode.OK);
-            if(!Shared.ValidateUserIdMatchesToken(context, id))
+            if (!Shared.ValidateUserIdMatchesToken(context, id))
             {
-                logger.LogInformation($"{context.InvocationId.ToString()} - Expected refugee Id does not match subject claim when creating a new refugee.");                    
+                logger.LogInformation($"{context.InvocationId.ToString()} - Expected Id does not match subject claim when checking account status.");
                 response.StatusCode = HttpStatusCode.Forbidden;
                 return response;
             }
-            //code to copy
-            /*
-            using(SqlConnection sql = SqlShared.GetSqlConnection())
+
+            try
             {
-                sql.Open();
-                using(SqlCommand cmd = new SqlCommand($"select top 1 * from Refugee where Id = {PARAM_REFUGEE_ID}" , sql))
+                using (SqlConnection sql = SqlShared.GetSqlConnection())
                 {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_REFUGEE_ID].Value = refugee.Id;
-                    using(SqlDataReader sdr = cmd.ExecuteReader())
+                    sql.Open();
+
+                    SqlShared.UpdateStatusForAccount(sql, id);
+                    AccountStatus status = SqlShared.GetAccountStatus(sql, id);
+
+                    if (status == SqlShared.AccountStatus.NotFound)
                     {
-                        if(sdr.Read())
-                        {
-                            response.StatusCode = HttpStatusCode.BadRequest;
-                            await response.WriteStringAsync( $"Error: trying to create a refugee with Id '{refugee.Id.ToString()}' but a refugee with this Id already exists in the database.");
-                            return response;
-                        }
+                        response.StatusCode = HttpStatusCode.NotFound;
+                        return response;
                     }
+
+                    Dictionary<string, string> ret = new Dictionary<string, string>();
+                    ret.Add("account_status", (status == SqlShared.AccountStatus.Active ? "Active" : "Archived" ));
+
+                    response.StatusCode = HttpStatusCode.OK;
+                    await response.WriteAsJsonAsync<Dictionary<string, string>>(ret);
+                    return response;
                 }
             }
-            */
-
-            throw new NotImplementedException();
+            catch (Exception exc)
+            {
+                logger.LogInformation(exc.ToString());
+                response.StatusCode = HttpStatusCode.BadRequest;
+                return response;
+            }
         }
-        
+
         [Function(nameof(ArchiveAccount))]
         //[FunctionAuthorize("subject")]
         public async Task<HttpResponseData> ArchiveAccount([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "account/{id}")] HttpRequestData req, Guid id, FunctionContext context)

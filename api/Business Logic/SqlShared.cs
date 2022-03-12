@@ -215,6 +215,45 @@ namespace SiteOfRefuge.API
             }
         }
 
+        internal enum AccountStatus
+        {
+            Active,
+            Archived,
+            NotFound
+        }
+
+        internal static void UpdateStatusForAccount(SqlConnection sql, Guid id)
+        {
+            using(SqlCommand cmd = new SqlCommand($"exec UpdateStatus {PARAM_ID};" , sql))
+            {
+                cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
+                cmd.Parameters[PARAM_ID].Value = id;
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        internal static AccountStatus GetAccountStatus(SqlConnection sql, Guid id)
+        {
+            using(SqlCommand cmd = new SqlCommand($@"select top 1 IsEnabled from (
+                    select Id, IsEnabled from Refugee where Id = {PARAM_ID}
+                    union
+                    select Id, IsEnabled from Host where Id = {PARAM_ID}
+                ) x" , sql))
+            {
+                cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
+                cmd.Parameters[PARAM_ID].Value = id;
+                using(SqlDataReader sdr = cmd.ExecuteReader())
+                {
+                    if(sdr.Read())
+                    {
+                        bool isEnabled = sdr.GetBoolean(0);
+                        return isEnabled ? AccountStatus.Active : AccountStatus.Archived;
+                    }
+                    return AccountStatus.NotFound;
+                }
+            }
+        }
+
         internal static void UpdateInvitationStatusForHost()
         {
             //TODO
