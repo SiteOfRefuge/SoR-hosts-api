@@ -6,6 +6,7 @@ using System.Data.Sql;
 using System.Data.SqlClient;
 using SiteOfRefuge.API.Models;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace SiteOfRefuge.API
 {
@@ -15,8 +16,9 @@ namespace SiteOfRefuge.API
     
         const string PARAM_ID = "@Id";
         const string PARAM_SUMMARY_ID = "@SummaryId";
-        const string PARAM_REFUGEE_ID = "@Id";
-        const string PARAM_CONTACTMODE_ID = "@Id";
+        const string PARAM_REFUGEE_ID = "@RefugeeId";
+        const string PARAM_HOST_ID = "@HostId";
+        const string PARAM_CONTACTMODE_ID = "@ContactModeId";
         const string PARAM_CONTACTMODE_METHOD = "@Method2";
         const string PARAM_CONTACTMODE_VALUE = "@Value";
         const string PARAM_CONTACTMODE_VERIFIED = "@Verified";
@@ -232,7 +234,7 @@ namespace SiteOfRefuge.API
             }
         }
 
-        internal static AccountStatus GetAccountStatus(SqlConnection sql, Guid id)
+        internal static async Task<AccountStatus> GetAccountStatus(SqlConnection sql, Guid id)
         {
             using(SqlCommand cmd = new SqlCommand($@"select top 1 IsEnabled from (
                     select Id, IsEnabled from Refugee where Id = {PARAM_ID}
@@ -242,7 +244,7 @@ namespace SiteOfRefuge.API
             {
                 cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
                 cmd.Parameters[PARAM_ID].Value = id;
-                using(SqlDataReader sdr = cmd.ExecuteReader())
+                using(SqlDataReader sdr = await cmd.ExecuteReaderAsync())
                 {
                     if(sdr.Read())
                     {
@@ -254,23 +256,35 @@ namespace SiteOfRefuge.API
             }
         }
 
-        internal static void UpdateInvitationStatusForHost()
+        internal static async Task<bool> CanInviteBeSent(SqlConnection sql, Guid HostId, Guid RefugeeId)
         {
-            //TODO
-        }
+            AccountStatus hostStatus = await GetAccountStatus(sql, HostId);
+            AccountStatus refugeeStatus = await GetAccountStatus(sql, RefugeeId);
+            if(hostStatus == AccountStatus.Archived) return false;
+            if(refugeeStatus == AccountStatus.Archived) return false;
+            //then check status of current invites...
 
-        internal static void UpdateInvitationStatusForRefugee()
-        {
-            //TODO
-            //archive any invites that are now expired
-            //archive any invites where host had another accept & 48 hrs pass
-            //archive any invites where either party has rescinded (in time)
-        }
+            using(SqlCommand cmd = new SqlCommand($@"
+                select top 1 RefugeeId, HostId from InviteWithHostAndRefugeeSummary
+                where 
+                    (
+                        (RefugeeId = {PARAM_REFUGEE_ID} or HostId = {PARAM_HOST_ID})
+                        and InviteStatus in ('Active', 'Completed')
+                    )
+                    or (RefugeeId = {PARAM_REFUGEE_ID} and HostId = {PARAM_HOST_ID})
+                ;", sql))
+            {
+                cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                cmd.Parameters[PARAM_HOST_ID].Value = HostId;
+                cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                cmd.Parameters[PARAM_REFUGEE_ID].Value = RefugeeId;
+                using(SqlDataReader sdr = await cmd.ExecuteReaderAsync())
+                {
+                    if(sdr.Read()) return false; //found a reason not to be able to send an invite (past invite between them, current )
+                    return true;
+                }
+            }
 
-        internal static bool CanInviteBeSent(Guid HostId, Guid RefugeeId)
-        {
-            return true;
-            //TODO: check if statuses of accounts allow invite to be sent
         }
     }
 }

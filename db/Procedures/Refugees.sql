@@ -36,6 +36,7 @@ with contacts as
 )
 select 
 	r.id as Id,
+	r.IsEnabled as IsEnabled,
 	rs.id as RefugeeSummaryId,
 	rs.Region as RefugeeSummaryRegion,
 	rs.People as RefugeeSummaryPeople,

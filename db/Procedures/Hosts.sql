@@ -36,6 +36,7 @@ with contacts as
 )
 select 
 	h.id as Id,
+	h.IsEnabled as IsEnabled,
 	hs.id as HostSummaryId,
 	hs.Region as HostSummaryRegion,
 	hs.AllowedPeople as HostSummaryPeople,

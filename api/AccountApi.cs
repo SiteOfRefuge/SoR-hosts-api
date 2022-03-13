@@ -40,7 +40,7 @@ namespace SiteOfRefuge.API
                     sql.Open();
 
                     SqlShared.UpdateStatusForAccount(sql, id);
-                    AccountStatus status = SqlShared.GetAccountStatus(sql, id);
+                    AccountStatus status = await SqlShared.GetAccountStatus(sql, id);
 
                     if (status == SqlShared.AccountStatus.NotFound)
                     {
@@ -79,44 +79,54 @@ namespace SiteOfRefuge.API
                 response.StatusCode = HttpStatusCode.Forbidden;
                 return response;
             }
-            //code to copy
-            using(SqlConnection sql = SqlShared.GetSqlConnection())
-            {
-                sql.Open();
-                using(SqlCommand cmd = new SqlCommand($"exec ArchiveAccount {PARAM_ID}" , sql))
-                {
-                    cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
-                    cmd.Parameters[PARAM_ID].Value = id;
-                    using(SqlDataReader sdr = cmd.ExecuteReader())
-                    {
-                        while(sdr.Read())
-                        {
-                            string notifyId = sdr.GetString(0);
-                            string accountType = sdr.GetString(1);
-                            bool isRefugee = string.Equals(accountType, "Refugee");
-                            string sms, email, firstname, lastname;
-                            try
-                            {
-                                SqlShared.GetContactInfo(sql, id, isRefugee, out sms, out email, out firstname, out lastname);
 
-                                Shared.SendNotifications(sms, email, firstname, lastname, "Offer withdrawn! Login at https://siteofrefuge.com to see your invitation.", logger);
-                            }
-                            catch(Exception exc)
+            try
+            {
+                //code to copy
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+                    using(SqlCommand cmd = new SqlCommand($"exec ArchiveAccount {PARAM_ID}" , sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_ID].Value = id;
+                        using(SqlDataReader sdr = cmd.ExecuteReader())
+                        {
+                            while(sdr.Read())
                             {
-                                logger.LogInformation($"{exc.ToString()} - Error getting contact info for notifications.");
-                                response.StatusCode = HttpStatusCode.Forbidden;
+                                string notifyId = sdr.GetString(0);
+                                string accountType = sdr.GetString(1);
+                                bool isRefugee = string.Equals(accountType, "Refugee");
+                                string sms, email, firstname, lastname;
+                                try
+                                {
+                                    SqlShared.GetContactInfo(sql, id, isRefugee, out sms, out email, out firstname, out lastname);
+
+                                    await Shared.SendNotifications(sms, email, firstname, lastname, "Offer withdrawn! Login at https://siteofrefuge.com to see your invitation.", logger);
+                                }
+                                catch(Exception exc)
+                                {
+                                    logger.LogInformation($"{exc.ToString()} - Error getting contact info for notifications.");
+                                    response.StatusCode = HttpStatusCode.Forbidden;
+                                    return response;
+                                }
+                                
+                                response.StatusCode = HttpStatusCode.BadRequest;
+                                await response.WriteStringAsync( $"Error: trying to archive account with Id '{id.ToString()}' but failed.");
                                 return response;
                             }
-                            
-                            response.StatusCode = HttpStatusCode.BadRequest;
-                            await response.WriteStringAsync( $"Error: trying to archive account with Id '{id.ToString()}' but failed.");
-                            return response;
                         }
                     }
                 }
             }
-
-            throw new NotImplementedException();
+            catch(Exception exc)
+            {
+                logger.LogInformation($"{exc.ToString()} - Error archiving account.");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                return response;
+            }
+            response.StatusCode = HttpStatusCode.OK;;
+            return response;
         }
     }
 }

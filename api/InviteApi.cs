@@ -38,6 +38,26 @@ namespace SiteOfRefuge.API
             var logger = context.GetLogger(nameof(GetInvites));
             logger.LogInformation("HTTP trigger function processed a request.");
 
+            /*
+            using(SqlConnection sql = SqlShared.GetSqlConnection())
+            {
+                sql.Open();
+
+                try
+                {
+
+                    SqlShared.UpdateStatusForAccount(sql, invite.HostId);
+                    SqlShared.UpdateStatusForAccount(sql, invite.RefugeeId);
+                    
+                    if(! (await SqlShared.CanInviteBeSent(sql, invite.HostId, invite.RefugeeId)))
+                    {
+                        logger.LogInformation($"Invite would violate policy: {invite.HostId}, {invite.RefugeeId}");
+                        response.StatusCode = HttpStatusCode.Forbidden;
+                        return response;
+                    }
+                }
+            }
+            */
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 403
@@ -77,21 +97,10 @@ namespace SiteOfRefuge.API
                         return response;
                     }
                 }
-                
+
                 if(!Shared.ValidateUserIdMatchesToken(context, invite.HostId))
                 {
                     logger.LogInformation($"{context.InvocationId.ToString()} - Expected host Id does not match subject claim when creating a new invite.");                    
-                    response.StatusCode = HttpStatusCode.Forbidden;
-                    return response;
-                }
-
-                //TODO: not implemented yet, but need to update invite statuses to ensure not doing something bad
-                SqlShared.UpdateInvitationStatusForHost();
-                SqlShared.UpdateInvitationStatusForRefugee();
-
-                if(!SqlShared.CanInviteBeSent(invite.HostId, invite.RefugeeId))
-                {
-                    logger.LogInformation($"Invite would violate policy: {invite.HostId}, {invite.RefugeeId}");
                     response.StatusCode = HttpStatusCode.Forbidden;
                     return response;
                 }
@@ -109,6 +118,17 @@ namespace SiteOfRefuge.API
 
                     try
                     {
+
+                        SqlShared.UpdateStatusForAccount(sql, invite.HostId);
+                        SqlShared.UpdateStatusForAccount(sql, invite.RefugeeId);
+                        
+                        if(! (await SqlShared.CanInviteBeSent(sql, invite.HostId, invite.RefugeeId)))
+                        {
+                            logger.LogInformation($"Invite would violate policy: {invite.HostId}, {invite.RefugeeId}");
+                            response.StatusCode = HttpStatusCode.Forbidden;
+                            return response;
+                        }
+
                         using(SqlCommand cmd = new SqlCommand($@"
                             declare @dt smalldatetime;
                             set @dt = getutcdate();
@@ -146,7 +166,7 @@ namespace SiteOfRefuge.API
                 }
 
                 //SEND NOTIFICATIONS
-                Shared.SendNotifications(sms, email, firstname, lastname, "You've been offered shelter! Login at https://siteofrefuge.com to see your invitation.", logger);
+                await Shared.SendNotifications(sms, email, firstname, lastname, "You've been offered shelter! Login at https://siteofrefuge.com to see your invitation.", logger);
             }
             catch(Exception exc)
             {
