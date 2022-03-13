@@ -132,7 +132,6 @@ namespace SiteOfRefuge.API
                         using(SqlCommand cmd = new SqlCommand($@"
                             declare @dt smalldatetime;
                             set @dt = getutcdate();
-                            select @dt, dateadd(d, 2, @dt);
                             insert into Invite(RefugeeId, HostId, Message, DateSent, ExpirationDate) 
                             values({PARAM_REFUGEE_ID}, {PARAM_HOST_ID}, {PARAM_MESSAGE}, @dt, dateadd(d, 5, @dt));", sql))
                         {
@@ -200,7 +199,7 @@ namespace SiteOfRefuge.API
         /// <param name="body"> The Id to use. </param>
         /// <param name="req"> Raw HTTP Request. </param>
         [Function(nameof(AcceptInvitation))]
-        public HttpResponseData AcceptInvitation(string id, [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "invite/{refugeeId}/{hostId}")] HttpRequestData req, Guid refugeeId, Guid hostId, FunctionContext context)
+        public async Task<HttpResponseData> AcceptInvitation(string id, [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "invite/{refugeeId}/{hostId}")] HttpRequestData req, Guid refugeeId, Guid hostId, FunctionContext context)
         {
             var logger = context.GetLogger(nameof(AcceptInvitation));
             logger.LogInformation("HTTP trigger function processed a request.");
@@ -223,8 +222,45 @@ namespace SiteOfRefuge.API
                     SqlShared.UpdateStatusForAccount(sql, refugeeId);
                     SqlShared.UpdateStatusForAccount(sql, hostId);
 
-                    //TODO check if invite can be accepted
-                    //TODO accept invite
+
+                    //TODO check if invite can be deleted
+                    using(SqlCommand cmd = new SqlCommand($"select InviteStatus from InviteWithHostAndRefugeeSummary where RefugeeId = {PARAM_REFUGEE_ID} and HostId = {PARAM_HOST_ID};" , sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOST_ID].Value = hostId;
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = refugeeId;
+                        using(SqlDataReader sdr = await cmd.ExecuteReaderAsync())
+                        {
+                            if(sdr.Read())
+                            {
+                                string status = sdr.GetString(0);
+                                if("Open" != status && "Pending" != status)
+                                {
+                                    response.StatusCode = HttpStatusCode.BadRequest;
+                                    return response;
+                                }
+                            }
+                            else
+                            {
+                                response.StatusCode = HttpStatusCode.NotFound;
+                                return response;
+                            }
+                        }
+                    }
+                    //TODO accept invite   
+                    using(SqlCommand cmd = new SqlCommand($@"
+                        declare @dt smalldatetime;
+                        set @dt = getutcdate();
+                        update Invite set AcceptedDate = @dt, DateToClose = dateadd(d, 5, @dt) 
+                        where RefugeeId = {PARAM_REFUGEE_ID} and HostId = {PARAM_HOST_ID}" , sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOST_ID].Value = hostId;
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = refugeeId;
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
             catch(Exception exc)
@@ -240,8 +276,6 @@ namespace SiteOfRefuge.API
             // Spec Defines: HTTP 204
             // Spec Defines: HTTP 403
             // Spec Defines: HTTP 404
-
-            throw new NotImplementedException();
         }
 
         const string FIELD_REFUGEE_ID = "RefugeeId";
@@ -299,7 +333,7 @@ namespace SiteOfRefuge.API
                             if(sdr.Read())
                             {
                                 string status = sdr.GetString(0);
-                                if("Open" != status && "Pending" != status)
+                                if("Open" != status && "Pending" != status && "Active" != status)
                                 {
                                     response.StatusCode = HttpStatusCode.BadRequest;
                                     return response;
