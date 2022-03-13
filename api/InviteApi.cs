@@ -21,6 +21,7 @@ using Twilio.Types;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 using System.Data.SqlClient;
+using static SiteOfRefuge.API.SqlShared;
 
 namespace SiteOfRefuge.API
 {
@@ -30,6 +31,9 @@ namespace SiteOfRefuge.API
         /// <summary> Initializes a new instance of InviteApi. </summary>
         public InviteApi() {}
 
+        const string PARAM_REFUGEE_ID = "@RefugeeId";
+        const string PARAM_HOST_ID = "@HostId";
+        const string PARAM_MESSAGE = "@Message";
         /// <summary> Lists any current invitation requests for this user. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         [Function(nameof(GetInvites))]
@@ -105,9 +109,6 @@ namespace SiteOfRefuge.API
                     return response;
                 }
 
-                const string PARAM_REFUGEE_ID = "@RefugeeId";
-                const string PARAM_HOST_ID = "@HostId";
-                const string PARAM_MESSAGE = "@Message";
                 string sms = null;
                 string email = null;
                 string firstname = null;
@@ -118,7 +119,6 @@ namespace SiteOfRefuge.API
 
                     try
                     {
-
                         SqlShared.UpdateStatusForAccount(sql, invite.HostId);
                         SqlShared.UpdateStatusForAccount(sql, invite.RefugeeId);
                         
@@ -134,7 +134,7 @@ namespace SiteOfRefuge.API
                             set @dt = getutcdate();
                             select @dt, dateadd(d, 2, @dt);
                             insert into Invite(RefugeeId, HostId, Message, DateSent, ExpirationDate) 
-                            values({PARAM_REFUGEE_ID}, {PARAM_HOST_ID}, {PARAM_MESSAGE}, @dt, dateadd(d, 2, @dt));", sql))
+                            values({PARAM_REFUGEE_ID}, {PARAM_HOST_ID}, {PARAM_MESSAGE}, @dt, dateadd(d, 5, @dt));", sql))
                         {
                             cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
                             cmd.Parameters[PARAM_REFUGEE_ID].Value = invite.RefugeeId;
@@ -200,11 +200,42 @@ namespace SiteOfRefuge.API
         /// <param name="body"> The Id to use. </param>
         /// <param name="req"> Raw HTTP Request. </param>
         [Function(nameof(AcceptInvitation))]
-        public HttpResponseData AcceptInvitation(string id, [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "invite/{id}")] string body, HttpRequestData req, FunctionContext context)
+        public HttpResponseData AcceptInvitation(string id, [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "invite/{refugeeId}/{hostId}")] HttpRequestData req, Guid refugeeId, Guid hostId, FunctionContext context)
         {
             var logger = context.GetLogger(nameof(AcceptInvitation));
             logger.LogInformation("HTTP trigger function processed a request.");
 
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            if(!Shared.ValidateUserIdMatchesToken(context, refugeeId))
+            {
+                logger.LogInformation($"{context.InvocationId.ToString()} - Expected refugee Id and host Id do not match subject claim when deleting an invite.");                    
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
+            }
+
+            try
+            {
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+
+                    SqlShared.UpdateStatusForAccount(sql, refugeeId);
+                    SqlShared.UpdateStatusForAccount(sql, hostId);
+
+                    //TODO check if invite can be accepted
+                    //TODO accept invite
+                }
+            }
+            catch(Exception exc)
+            {
+                logger.LogInformation($"{exc.ToString()} error deleting {refugeeId.ToString()}/{hostId.ToString()}");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                return response;
+            }
+            response.StatusCode = HttpStatusCode.OK;
+            return response;
+            
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 204
             // Spec Defines: HTTP 403
@@ -213,30 +244,96 @@ namespace SiteOfRefuge.API
             throw new NotImplementedException();
         }
 
+        const string FIELD_REFUGEE_ID = "RefugeeId";
+        const string FIELD_HOST_ID = "HostId";
+        const string FIELD_REFUGEE_RESCINDED = "RefugeeRescinded";
+        const string FIELD_HOST_RESCINDED = "HostRescinded";
         /// <summary> Withdraw invitation request. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Invite id in UUID/GUID format. </param>
         [Function(nameof(DeleteInvite))]
-        public HttpResponseData DeleteInvite([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "invite/{id}")] HttpRequestData req, Guid refugeeId, Guid hostId, FunctionContext context)
+        public async Task<HttpResponseData> DeleteInvite([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "invite/{myid}/{otherid}")] HttpRequestData req, Guid myid, Guid otherid, FunctionContext context)
         {
             var logger = context.GetLogger(nameof(DeleteInvite));
             logger.LogInformation("HTTP trigger function processed a request.");
 
             var response = req.CreateResponse(HttpStatusCode.OK);
 
-            if(!Shared.ValidateUserIdMatchesToken(context, refugeeId) && !Shared.ValidateUserIdMatchesToken(context, hostId))
+            if(!Shared.ValidateUserIdMatchesToken(context, myid) && !Shared.ValidateUserIdMatchesToken(context, myid))
             {
                 logger.LogInformation($"{context.InvocationId.ToString()} - Expected refugee Id and host Id do not match subject claim when deleting an invite.");                    
                 response.StatusCode = HttpStatusCode.Forbidden;
                 return response;
             }
 
+            try
+            {
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
 
-            // TODO: Handle Documented Responses.
+                    SqlShared.UpdateStatusForAccount(sql, myid);
+                    SqlShared.UpdateStatusForAccount(sql, otherid);
+
+                    AccountType type = await SqlShared.GetAccountType(sql, myid);
+                    if(type == AccountType.NotFound) throw new Exception("User not known refugee or host");
+                    Guid refugeeId = myid;
+                    Guid hostId = otherid;
+                    string rescindField = FIELD_REFUGEE_RESCINDED;
+                    if(type == AccountType.Host)
+                    {
+                        refugeeId = otherid;
+                        hostId = myid;
+                        rescindField = FIELD_HOST_RESCINDED;
+                    }
+
+                    //TODO check if invite can be deleted
+                    using(SqlCommand cmd = new SqlCommand($"select InviteStatus from InviteWithHostAndRefugeeSummary where RefugeeId = {PARAM_REFUGEE_ID} and HostId = {PARAM_HOST_ID};" , sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOST_ID].Value = hostId;
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = refugeeId;
+                        using(SqlDataReader sdr = await cmd.ExecuteReaderAsync())
+                        {
+                            if(sdr.Read())
+                            {
+                                string status = sdr.GetString(0);
+                                if("Open" != status && "Pending" != status)
+                                {
+                                    response.StatusCode = HttpStatusCode.BadRequest;
+                                    return response;
+                                }
+                            }
+                            else
+                            {
+                                response.StatusCode = HttpStatusCode.NotFound;
+                                return response;
+                            }
+                        }
+                    }
+                    //TODO delete invite   
+                    using(SqlCommand cmd = new SqlCommand($"update Invite set {rescindField} = getutcdate() where RefugeeId = {PARAM_REFUGEE_ID} and HostId = {PARAM_HOST_ID}" , sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_HOST_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_HOST_ID].Value = hostId;
+                        cmd.Parameters.Add(new SqlParameter(PARAM_REFUGEE_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_REFUGEE_ID].Value = refugeeId;
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                response.StatusCode = HttpStatusCode.OK;
+                return response;
+            }
+            catch(Exception exc)
+            {
+                logger.LogInformation($"{exc.ToString()} error deleting {myid}/{otherid}");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                return response;
+            }
+
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 404
-
-            throw new NotImplementedException();
         }
     }
 }

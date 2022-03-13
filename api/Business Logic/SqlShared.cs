@@ -284,7 +284,36 @@ namespace SiteOfRefuge.API
                     return true;
                 }
             }
-
         }
+
+
+        internal enum AccountType
+        {
+            Refugee,
+            Host,
+            NotFound
+        }
+
+        internal static async Task<AccountType> GetAccountType(SqlConnection sql, Guid id)
+        {
+            using(SqlCommand cmd = new SqlCommand($@"select top 1 IsRefugee, IsHost from UserToRefugeeOrHostMapping where id = {PARAM_ID};" , sql))
+            {
+                cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
+                cmd.Parameters[PARAM_ID].Value = id;
+                using(SqlDataReader sdr = await cmd.ExecuteReaderAsync())
+                {
+                    if(sdr.Read())
+                    {
+                        int isRefugee = sdr.GetInt32(0);
+                        int isHost = sdr.GetInt32(1);
+                        if(isRefugee == 1 && isHost == 1) throw new Exception($"User is refugee and host: {id}");
+                        if(isRefugee == 1) return AccountType.Refugee;
+                        if(isHost == 1) return AccountType.Host;
+                        return AccountType.NotFound;
+                    }
+                    return AccountType.NotFound;
+                }
+            }
+        }        
     }
 }
