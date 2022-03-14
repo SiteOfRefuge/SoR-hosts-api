@@ -6,12 +6,18 @@
 #nullable disable
 
 using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using SiteOfRefuge.API.Middleware;
+using static SiteOfRefuge.API.SqlShared;
 
 namespace SiteOfRefuge.API
 {
@@ -20,22 +26,251 @@ namespace SiteOfRefuge.API
         /// <summary> Initializes a new instance of SearchApi. </summary>
         public SearchApi() {}
 
+        const string PARAM_ID = "@Id";
+
         /// <summary> Attempt to find hosts that match the needs of a refugee. This id has to match with the id in the access token. </summary>
         /// <param name="req"> Raw HTTP Request. </param>
         /// <param name="id"> Refugee id in UUID/GUID format. </param>
         [FunctionAuthorize("subject")]
         [Function(nameof(FindMatch))]
-        public HttpResponseData FindMatch([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "search/{id}")] HttpRequestData req, Guid id, FunctionContext context)
+        public async Task<HttpResponseData> FindMatch([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "search/{id}")] HttpRequestData req, Guid id, FunctionContext context)
         {
             var logger = context.GetLogger(nameof(FindMatch));            
             logger.LogInformation("HTTP trigger function processed a request.");
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            if(!Shared.ValidateUserIdMatchesToken(context, id))
+            {
+                logger.LogInformation($"{context.InvocationId.ToString()} - Expected refugee Id and host Id do not match subject claim when deleting an invite.");                    
+                response.StatusCode = HttpStatusCode.Forbidden;
+                return response;
+            }
+
+            JArray jarray = new JArray();
+            try
+            {
+                using(SqlConnection sql = SqlShared.GetSqlConnection())
+                {
+                    sql.Open();
+
+                    SqlShared.UpdateStatusForAccount(sql, id); //should update for every refugee? no - expire or complete not needed, won't show if active (about to complete) and expiring wouldn't remove here...
+                    AccountType type = await SqlShared.GetAccountType(sql, id);
+                    AccountStatus status = await SqlShared.GetAccountStatus(sql, id);
+
+                    if(type != AccountType.Host || status == AccountStatus.Archived || status == AccountStatus.NotFound)
+                    {
+                        response.StatusCode = HttpStatusCode.NotFound;
+                        return response;
+                    }
+
+                    //TODO check if invite can be deleted
+                    using(SqlCommand cmd = new SqlCommand($@"
+                            declare @hostId uniqueidentifier;
+                            set @hostId = {PARAM_ID};
+
+                            declare @region nvarchar(4000);
+                            declare @people int;
+                            declare @dtAvailable smalldatetime;
+                            declare @english int;
+                            declare @ukrainian int;
+                            declare @polish int;
+                            declare @russian int;
+                            declare @slovak int;
+                            declare @hungarian int;
+                            declare @romainian int;
+                            declare @otherlanguage int;
+                            declare @kids int;
+                            declare @men int;
+                            declare @women int;
+                            declare @dogs int;
+                            declare @cats int;
+                            declare @otherpets int;
+                            declare @activeinvites int;
+                            declare @completedinvites int;
+                            declare @closedinvites int;
+                            declare @pendinginvites int;
+                            declare @archivedinvites int;
+                            select top 1	@region = HostSummaryRegion, 
+                                            @people = HostSummaryPeople, 
+                                            @dtAvailable = AvailabilityDateAvailable, 
+                                            @english = English, 
+                                            @ukrainian = Ukrainian, 
+                                            @polish = Polish, 
+                                            @russian = Russian, 
+                                            @slovak = Slovak, 
+                                            @hungarian = Hungarian, 
+                                            @romainian = Romanian, 
+                                            @otherlanguage = Other, 
+                                            @kids = Kids, 
+                                            @men = Men, 
+                                            @women = Women, 
+                                            @dogs = Dogs, 
+                                            @cats = Cats, 
+                                            @otherpets = OtherPets, 
+                                            @activeinvites = ActiveInvites, 
+                                            @completedinvites = CompletedInvites, 
+                                            @closedinvites = ClosedInvites, 
+                                            @pendinginvites = PendingInvites, 
+                                            @archivedinvites = ArchivedInvites 
+                                from HostsWithInviteSummary where Id = @hostId and IsEnabled = 1 and ActiveInvites = 0;
+
+                            select 
+                                Id as RefugeeId, 
+                                RefugeeSummaryRegion, 
+                                RefugeeSummaryPeople, 
+                                RefugeeSummaryMessage, 
+                                RefugeePossessionDate, 
+                                English, 
+                                Ukrainian, 
+                                Polish, 
+                                Russian, 
+                                Slovak, 
+                                Hungarian, 
+                                Romanian, 
+                                Other, 
+                                Kids, 
+                                Men, 
+                                Women, 
+                                Dogs, 
+                                Cats, 
+                                OtherPets,
+                                RefugeeContactFirstName, 
+                                RefugeeContactLastName,
+                                case when RefugeePossessionDate >= @dtAvailable then 0 else datediff(day, RefugeePossessionDate, @dtAvailable) end as DaysUntilAvailability,
+                                OpenInvites,
+                                case when Dogs = 1 then DogsScore else NonDogsScore end *
+                                case when Cats = 1 then CatsScore else NonCatsScore end *
+                                case when OtherPets = 1 then OtherPetsScore else NonOtherPetsScore end *
+                                case when Kids = 1 then KidsScore else NonKidsScore end *
+                                case when Men = 1 then MenScore else NonMenScore end *
+                                case when Women = 1 then WomenScore else NonWomenScore end
+                                    as Score, --score...
+                                ClosedInvites as MissedOpportunities
+                            from RefugeesWithInviteSummary r 
+                            left outer join Invite i
+                                on r.Id = i.RefugeeId and i.HostId = @hostId
+                            cross join
+                            (
+                                select
+                                    pctdogsR/pctdogsH as DogsScore,
+                                    (1-pctDogsR)/1 as NonDogsScore,
+                                    pctcatsR/pctcatsH as CatsScore,
+                                    (1-pctcatsR)/1 as NonCatsScore,
+                                    pctotherpetsR/pctotherpetsH as OtherPetsScore,
+                                    (1-pctotherpetsR)/1 as NonOtherPetsScore,
+                                    pctkidsR/pctkidsH as KidsScore,
+                                    (1-pctkidsR)/1 as NonKidsScore,
+                                    pctmenR/pctmenH as MenScore,
+                                    (1-pctmenR)/1 as NonMenScore,
+                                    pctwomenR/pctwomenH as WomenScore,
+                                    (1-pctwomenR)/1 as NonWomenScore--,
+                                    --*
+                                from
+                                (
+                                    select 
+                                        (sum(cast(dogs as int))+1.0)/(count(*)+1) as PctDogsR,
+                                        (sum(cast(cats as int))+1.0)/(count(*)+1) as PctCatsR,
+                                        (sum(cast(OtherPets as int))+1.0)/(count(*)+1) as PctOtherPetsR,
+                                        (sum(cast(Kids as int))+1.0)/(count(*)+1) as PctKidsR,
+                                        (sum(cast(Men as int))+1.0)/(count(*)+1) as PctMenR,
+                                        (sum(cast(Women as int))+1.0)/(count(*)+1) as PctWomenR,
+                                        count(*) as TotalR
+                                    from RefugeesWithInviteSummary
+                                ) rsum
+                                cross join
+                                (
+                                    select 
+                                        (sum(cast(dogs as int))+1.0)/(count(*)+1) as PctDogsH,
+                                        (sum(cast(cats as int))+1.0)/(count(*)+1) as PctCatsH,
+                                        (sum(cast(OtherPets as int))+1.0)/(count(*)+1) as PctOtherPetsH,
+                                        (sum(cast(Kids as int))+1.0)/(count(*)+1) as PctKidsH,
+                                        (sum(cast(Men as int))+1.0)/(count(*)+1) as PctMenH,
+                                        (sum(cast(Women as int))+1.0)/(count(*)+1) as PctWomenH,
+                                        count(*) as TotalH
+                                    from HostsWithInviteSummary
+                                ) hsum
+                            ) agg
+                            where r.IsEnabled = 1 and r.ActiveInvites = 0
+                            and i.RefugeeId is null
+                            and RefugeeSummaryPeople <= @people
+                            and (@dogs = 1 or Dogs = 0)
+                            and (@cats = 1 or Cats = 0)
+                            and (@otherpets = 1 or OtherPets = 0)
+                            and (@kids = 1 or Kids = 0)
+                            and (@men = 1 or Men = 0)
+                            and (@women = 1 or Women = 0)
+                            order by DaysUntilAvailability asc, r.OpenInvites asc, Score desc, MissedOpportunities asc, newid()
+                            ;
+                        ", sql))
+                    {
+                        cmd.Parameters.Add(new SqlParameter(PARAM_ID, System.Data.SqlDbType.UniqueIdentifier));
+                        cmd.Parameters[PARAM_ID].Value = id;
+                        using(SqlDataReader sdr = await cmd.ExecuteReaderAsync())
+                        {
+                            int cnt = 0;
+                            while(sdr.Read())
+                            {
+                                cnt++;
+                                int idx = 0;
+                                JObject json = new JObject();
+                                json["refugee_id"] = sdr.GetGuid(idx++);
+                                json["region"] = sdr.GetString(idx++);
+                                json["people"] = sdr.GetInt32(idx++);
+                                json["message"] = sdr.GetString(idx++);
+                                json["possession_date"] = sdr.GetDateTime(idx++);
+                                JArray languages = new JArray();
+                                JArray restrictions = new JArray();
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("English");
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("Ukrainian");
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("Polish");
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("Russian");
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("Slovak");
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("Hungarian");
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("Romanian");
+                                if(sdr.GetInt32(idx++) == 1) languages.Add("Other");
+                                if(sdr.GetInt32(idx++) == 1) restrictions.Add("Kids");
+                                if(sdr.GetInt32(idx++) == 1) restrictions.Add("Men");
+                                if(sdr.GetInt32(idx++) == 1) restrictions.Add("Women");
+                                if(sdr.GetInt32(idx++) == 1) restrictions.Add("Dogs");
+                                if(sdr.GetInt32(idx++) == 1) restrictions.Add("Cats");
+                                if(sdr.GetInt32(idx++) == 1) restrictions.Add("Other pets");
+                                json["languages"] = languages;
+                                json["restrictions"] = restrictions;
+                                try{
+                                json["firstname"] = sdr.GetString(idx++);
+                                } catch {}
+                                try { json["lastname"] = sdr.GetString(idx++); } catch {}
+
+                                jarray.Add(json);
+                            }
+                            if(cnt < 1)
+                            {
+                                response.StatusCode = HttpStatusCode.NotFound;
+                                return response;
+                            }
+                        }
+                    }
+                }
+            }
+            catch(Exception exc)
+            {
+                logger.LogInformation($"{exc.ToString()} error searching for host {id.ToString()}");
+                response.StatusCode = HttpStatusCode.BadRequest;
+                return response;
+            }
+            response.StatusCode = HttpStatusCode.OK;
+            string j = jarray.ToString();
+            j = Regex.Unescape(j);
+            response.WriteString(j);
+            return response;            
+
+            //$@"select top 1 HostSummaryRegion, HostSummaryPeople, AvailabilityDateAvailable, English, Ukrainian, Polish, Russian, Slovak, Hungarian, Romanian, Other, Kids, Men, Women, Dogs, Cats, OtherPets, ActiveInvites, CompletedInvites, ClosedInvites, PendingInvites, ArchivedInvites from HostsWithInviteSummary where Id = '10000000-0000-0000-0000-000000000000' and IsEnabled = 1;";
 
             // TODO: Handle Documented Responses.
             // Spec Defines: HTTP 200
             // Spec Defines: HTTP 403
             // Spec Defines: HTTP 404
-
-            throw new NotImplementedException();
         }
     }
 }

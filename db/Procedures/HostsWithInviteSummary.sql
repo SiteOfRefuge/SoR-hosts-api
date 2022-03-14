@@ -15,6 +15,7 @@ left outer join
 		sum(case when InviteStatus = 'Active' then 1 else 0 end) as ActiveInvites,
 		sum(case when InviteStatus = 'Completed' then 1 else 0 end) as CompletedInvites,
 		sum(case when InviteStatus = 'Closed' then 1 else 0 end) as ClosedInvites,
+		sum(case when InviteStatus = 'Open' then 1 else 0 end) as OpenInvites,
 		sum(case when InviteStatus = 'Pending' then 1 else 0 end) as PendingInvites,
 		sum(case when InviteStatus = 'Archived' then 1 else 0 end) as ArchivedInvites
 	from InviteWithHostAndRefugeeSummary
